@@ -36,3 +36,7 @@
 - [x] Add keyboard shortcuts (commit: 671096d)
 - [x] Implement merge PDFs dialog (commit: 395ed94)
 - [x] Add password protection support (commit: 09cdcff)
+- [x] Fix zoom with proper image sizing (commit: 1873ac8)
+- [x] Fix merge dialog selection tracking (commit: af8b15c)
+- [x] Fix password-protected PDF opening (commit: 78978cb)
+- [x] Fix ChangePassword owner password API (commit: 78978cb)
