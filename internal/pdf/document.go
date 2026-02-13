@@ -10,6 +10,9 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
+// Global renderer instance
+var renderer = NewRenderer()
+
 // Document represents a PDF document.
 type Document struct {
 	path      string
@@ -109,8 +112,25 @@ func (d *Document) RenderPage(pageNum int, scale float64) (image.Image, error) {
 		return nil, errors.New("page number out of range")
 	}
 
-	// TODO: Implement actual PDF rendering using go-pdfium
-	// For now, return a placeholder image
+	// Try to use poppler renderer if available
+	if renderer.CanRender() {
+		// Convert scale to DPI (1.0 = 72 DPI, 2.0 = 144 DPI)
+		dpi := int(72 * scale)
+		if dpi < 36 {
+			dpi = 36
+		}
+		if dpi > 300 {
+			dpi = 300
+		}
+
+		img, err := renderer.RenderPage(d.path, pageNum, dpi)
+		if err == nil {
+			return img, nil
+		}
+		// Fall through to placeholder on error
+	}
+
+	// Fallback: return a placeholder image
 	width := int(612 * scale)  // Letter size width in points
 	height := int(792 * scale) // Letter size height in points
 
