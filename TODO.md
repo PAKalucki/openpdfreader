@@ -1,6 +1,7 @@
 # TODO
 
 ## In Progress
+- [ ] Fix zoom functionality
 - [ ] Implement split PDF dialog
 - [ ] Add thumbnail rendering in sidebar
 
@@ -36,10 +37,10 @@
 - [x] Add keyboard shortcuts (commit: 671096d)
 - [x] Implement merge PDFs dialog (commit: 395ed94)
 - [x] Add password protection support (commit: 09cdcff)
-- [x] Fix zoom with proper image sizing (commit: 1873ac8)
 - [x] Fix merge dialog selection tracking (commit: af8b15c)
 - [x] Fix password-protected PDF opening (commit: 78978cb)
 - [x] Fix ChangePassword owner password API (commit: 78978cb)
-- [x] Fix zoom with async rendering and cached image scaling (commit: 000f36f)
 - [x] Add unit tests for pdf package (commit: 4db0bf5)
 - [x] Fix merge input validation (commit: 4db0bf5)
+- [x] Upgrade Fyne from v2.5.4 to v2.7.2 (commit: 7fb5cac)
+- [ ] Zoom implementation attempts (commits: 1873ac8, 000f36f, 39d5322, b016767) - NOT WORKING
