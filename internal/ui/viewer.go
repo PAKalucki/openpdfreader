@@ -13,25 +13,83 @@ import (
 	"github.com/openpdfreader/openpdfreader/internal/pdf"
 )
 
+// sizedImage is a custom widget that wraps canvas.Image with explicit MinSize control.
+type sizedImage struct {
+	widget.BaseWidget
+	image   *canvas.Image
+	minSize fyne.Size
+}
+
+func newSizedImage() *sizedImage {
+	s := &sizedImage{
+		image:   canvas.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 100, 100))),
+		minSize: fyne.NewSize(100, 100),
+	}
+	s.image.FillMode = canvas.ImageFillContain
+	s.image.ScaleMode = canvas.ImageScaleSmooth
+	s.ExtendBaseWidget(s)
+	return s
+}
+
+func (s *sizedImage) SetImage(img image.Image) {
+	s.image.Image = img
+	s.image.Refresh()
+}
+
+func (s *sizedImage) SetMinSize(size fyne.Size) {
+	s.minSize = size
+	s.Refresh()
+}
+
+func (s *sizedImage) MinSize() fyne.Size {
+	return s.minSize
+}
+
+func (s *sizedImage) CreateRenderer() fyne.WidgetRenderer {
+	return &sizedImageRenderer{s: s}
+}
+
+type sizedImageRenderer struct {
+	s *sizedImage
+}
+
+func (r *sizedImageRenderer) Layout(size fyne.Size) {
+	r.s.image.Resize(size)
+	r.s.image.Move(fyne.NewPos(0, 0))
+}
+
+func (r *sizedImageRenderer) MinSize() fyne.Size {
+	return r.s.minSize
+}
+
+func (r *sizedImageRenderer) Refresh() {
+	r.s.image.Refresh()
+}
+
+func (r *sizedImageRenderer) Objects() []fyne.CanvasObject {
+	return []fyne.CanvasObject{r.s.image}
+}
+
+func (r *sizedImageRenderer) Destroy() {}
+
 // Viewer displays PDF pages.
 type Viewer struct {
-	container    *fyne.Container
-	scroll       *container.Scroll
-	pageImage    *canvas.Image
-	imageHolder  *fyne.Container
-	document     *pdf.Document
-	currentPage  int
-	zoom         float64
-	pageLabel    *widget.Label
-	zoomLabel    *widget.Label
-	prevBtn      *widget.Button
-	nextBtn      *widget.Button
-	cachedImage  image.Image
-	cachedPage   int
-	baseWidth    int
-	baseHeight   int
-	renderMu     sync.Mutex
-	rendering    bool
+	container   *fyne.Container
+	scroll      *container.Scroll
+	pageImage   *sizedImage
+	document    *pdf.Document
+	currentPage int
+	zoom        float64
+	pageLabel   *widget.Label
+	zoomLabel   *widget.Label
+	prevBtn     *widget.Button
+	nextBtn     *widget.Button
+	cachedImage image.Image
+	cachedPage  int
+	baseWidth   int
+	baseHeight  int
+	renderMu    sync.Mutex
+	rendering   bool
 }
 
 // NewViewer creates a new PDF viewer widget.
@@ -44,15 +102,10 @@ func NewViewer() *Viewer {
 		zoomLabel:   widget.NewLabel("100%"),
 	}
 
-	// Create image with contain mode for proper scaling
-	v.pageImage = canvas.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 100, 100)))
-	v.pageImage.FillMode = canvas.ImageFillContain
-	v.pageImage.ScaleMode = canvas.ImageScaleSmooth
+	// Create custom sized image widget
+	v.pageImage = newSizedImage()
 
-	// Wrap image in a container we can resize
-	v.imageHolder = container.NewStack(v.pageImage)
-
-	v.scroll = container.NewScroll(v.imageHolder)
+	v.scroll = container.NewScroll(v.pageImage)
 
 	v.container = container.NewBorder(
 		nil,
@@ -138,12 +191,12 @@ func (v *Viewer) applyZoom() {
 	}
 
 	// Calculate scaled size based on cached image and zoom
+	// Base render is at 2.0x, so divide by 2 to get 100% size
 	scaledWidth := float32(v.baseWidth) * float32(v.zoom) / 2.0
 	scaledHeight := float32(v.baseHeight) * float32(v.zoom) / 2.0
 
-	v.imageHolder.Resize(fyne.NewSize(scaledWidth, scaledHeight))
-	v.pageImage.Resize(fyne.NewSize(scaledWidth, scaledHeight))
-	v.scroll.Refresh()
+	// Update min size - this drives the scroll content size
+	v.pageImage.SetMinSize(fyne.NewSize(scaledWidth, scaledHeight))
 
 	v.zoomLabel.SetText(fmt.Sprintf("%.0f%%", v.zoom*100))
 }
@@ -188,7 +241,7 @@ func (v *Viewer) renderCurrentPage() {
 		bounds := img.Bounds()
 		v.baseWidth = bounds.Dx()
 		v.baseHeight = bounds.Dy()
-		v.pageImage.Image = img
+		v.pageImage.SetImage(img)
 	}
 
 	v.applyZoom()
