@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 
 	"fyne.io/fyne/v2"
@@ -20,6 +21,7 @@ type Viewer struct {
 	currentPage int
 	zoom        float64
 	pageLabel   *widget.Label
+	zoomLabel   *widget.Label
 }
 
 // NewViewer creates a new PDF viewer widget.
@@ -28,11 +30,13 @@ func NewViewer() *Viewer {
 		currentPage: 0,
 		zoom:        1.0,
 		pageLabel:   widget.NewLabel("No document loaded"),
+		zoomLabel:   widget.NewLabel("100%"),
 	}
 
 	// Placeholder image
 	v.pageImage = canvas.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 1, 1)))
-	v.pageImage.FillMode = canvas.ImageFillContain
+	v.pageImage.FillMode = canvas.ImageFillOriginal
+	v.pageImage.ScaleMode = canvas.ImageScaleFastest
 
 	v.scroll = container.NewScroll(v.pageImage)
 
@@ -112,21 +116,29 @@ func (v *Viewer) FitToWidth() {
 func (v *Viewer) renderCurrentPage() {
 	if v.document == nil {
 		v.pageLabel.SetText("No document loaded")
+		v.zoomLabel.SetText("--")
 		return
 	}
 
 	img, err := v.document.RenderPage(v.currentPage, v.zoom)
 	if err != nil {
-		v.pageLabel.SetText("Error rendering page")
+		v.pageLabel.SetText("Error rendering page: " + err.Error())
 		return
 	}
 
+	// Set the image and update its minimum size to match the rendered dimensions
+	bounds := img.Bounds()
 	v.pageImage.Image = img
+	v.pageImage.SetMinSize(fyne.NewSize(float32(bounds.Dx()), float32(bounds.Dy())))
 	v.pageImage.Refresh()
+
+	// Scroll to top-left when page changes
+	v.scroll.ScrollToTop()
 
 	v.pageLabel.SetText(
 		"Page " + intToStr(v.currentPage+1) + " of " + intToStr(v.document.PageCount()),
 	)
+	v.zoomLabel.SetText(fmt.Sprintf("%.0f%%", v.zoom*100))
 }
 
 func (v *Viewer) createPageControls() *fyne.Container {
@@ -138,10 +150,22 @@ func (v *Viewer) createPageControls() *fyne.Container {
 		v.GoToPage(v.currentPage + 1)
 	})
 
+	zoomOutBtn := widget.NewButton("-", func() {
+		v.ZoomOut()
+	})
+
+	zoomInBtn := widget.NewButton("+", func() {
+		v.ZoomIn()
+	})
+
 	return container.NewHBox(
 		prevBtn,
 		v.pageLabel,
 		nextBtn,
+		widget.NewSeparator(),
+		zoomOutBtn,
+		v.zoomLabel,
+		zoomInBtn,
 	)
 }
 
