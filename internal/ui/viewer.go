@@ -14,14 +14,18 @@ import (
 
 // Viewer displays PDF pages.
 type Viewer struct {
-	container   *fyne.Container
-	scroll      *container.Scroll
-	pageImage   *canvas.Image
-	document    *pdf.Document
-	currentPage int
-	zoom        float64
-	pageLabel   *widget.Label
-	zoomLabel   *widget.Label
+	container    *fyne.Container
+	scroll       *container.Scroll
+	pageImage    *canvas.Image
+	document     *pdf.Document
+	currentPage  int
+	zoom         float64
+	pageLabel    *widget.Label
+	zoomLabel    *widget.Label
+	cachedImage  image.Image // cached render at base DPI
+	cachedPage   int         // which page is cached
+	baseWidth    int         // original image width
+	baseHeight   int         // original image height
 }
 
 // NewViewer creates a new PDF viewer widget.
@@ -29,6 +33,7 @@ func NewViewer() *Viewer {
 	v := &Viewer{
 		currentPage: 0,
 		zoom:        1.0,
+		cachedPage:  -1,
 		pageLabel:   widget.NewLabel("No document loaded"),
 		zoomLabel:   widget.NewLabel("100%"),
 	}
@@ -36,7 +41,7 @@ func NewViewer() *Viewer {
 	// Placeholder image
 	v.pageImage = canvas.NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 1, 1)))
 	v.pageImage.FillMode = canvas.ImageFillOriginal
-	v.pageImage.ScaleMode = canvas.ImageScaleFastest
+	v.pageImage.ScaleMode = canvas.ImageScaleSmooth
 
 	v.scroll = container.NewScroll(v.pageImage)
 
@@ -60,6 +65,8 @@ func (v *Viewer) Container() *fyne.Container {
 func (v *Viewer) SetDocument(doc *pdf.Document) {
 	v.document = doc
 	v.currentPage = 0
+	v.cachedPage = -1 // invalidate cache
+	v.cachedImage = nil
 	v.renderCurrentPage()
 }
 
@@ -77,8 +84,11 @@ func (v *Viewer) GoToPage(page int) {
 		page = pageCount - 1
 	}
 
-	v.currentPage = page
-	v.renderCurrentPage()
+	if page != v.currentPage {
+		v.currentPage = page
+		v.renderCurrentPage()
+		v.scroll.ScrollToTop()
+	}
 }
 
 // ZoomIn increases the zoom level.
@@ -120,20 +130,28 @@ func (v *Viewer) renderCurrentPage() {
 		return
 	}
 
-	img, err := v.document.RenderPage(v.currentPage, v.zoom)
-	if err != nil {
-		v.pageLabel.SetText("Error rendering page: " + err.Error())
-		return
+	// Only re-render from PDF if page changed
+	if v.cachedPage != v.currentPage || v.cachedImage == nil {
+		// Render at high DPI (2.0 = 144 DPI) for quality when zooming
+		img, err := v.document.RenderPage(v.currentPage, 2.0)
+		if err != nil {
+			v.pageLabel.SetText("Error rendering page: " + err.Error())
+			return
+		}
+		v.cachedImage = img
+		v.cachedPage = v.currentPage
+		bounds := img.Bounds()
+		v.baseWidth = bounds.Dx()
+		v.baseHeight = bounds.Dy()
+		v.pageImage.Image = img
 	}
 
-	// Set the image and update its minimum size to match the rendered dimensions
-	bounds := img.Bounds()
-	v.pageImage.Image = img
-	v.pageImage.SetMinSize(fyne.NewSize(float32(bounds.Dx()), float32(bounds.Dy())))
+	// Apply zoom by scaling the display size (not re-rendering)
+	// Base render is at 2.0x, so divide by 2 to get 100% size, then multiply by zoom
+	scaledWidth := float32(v.baseWidth) * float32(v.zoom) / 2.0
+	scaledHeight := float32(v.baseHeight) * float32(v.zoom) / 2.0
+	v.pageImage.SetMinSize(fyne.NewSize(scaledWidth, scaledHeight))
 	v.pageImage.Refresh()
-
-	// Scroll to top-left when page changes
-	v.scroll.ScrollToTop()
 
 	v.pageLabel.SetText(
 		"Page " + intToStr(v.currentPage+1) + " of " + intToStr(v.document.PageCount()),
