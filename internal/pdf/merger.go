@@ -1,6 +1,8 @@
 package pdf
 
 import (
+	"errors"
+
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
 
@@ -14,6 +16,9 @@ func NewMerger() *Merger {
 
 // Merge combines multiple PDF files into one.
 func (m *Merger) Merge(inputPaths []string, outputPath string) error {
+	if len(inputPaths) < 2 {
+		return errors.New("merge requires at least 2 input files")
+	}
 	return api.MergeCreateFile(inputPaths, outputPath, false, nil)
 }
 
