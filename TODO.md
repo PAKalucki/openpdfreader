@@ -1,25 +1,18 @@
 # TODO
 
 ## In Progress
-- [ ] Install Fyne dependencies (gcc, libgl1-mesa-dev, xorg-dev)
-- [ ] Run `go mod tidy` to resolve dependencies
-- [ ] Implement actual PDF rendering using go-pdfium
+- [ ] Implement split PDF dialog
+- [ ] Add thumbnail rendering in sidebar
 
 ## Backlog
-- [ ] Add file open via command-line argument
 - [ ] Implement text selection and copy
-- [ ] Add thumbnail rendering in sidebar
 - [ ] Implement zoom fit to page/width calculations
 - [ ] Add print dialog
-- [ ] Implement merge PDFs dialog
-- [ ] Implement split PDF dialog
-- [ ] Add annotation tools
+- [ ] Add annotation tools (highlight, text, shapes)
 - [ ] Implement form field detection and filling
 - [ ] Add signature pad
-- [ ] Implement password protection dialogs
 - [ ] Add redaction tools
 - [ ] Implement PDF to image export
-- [ ] Add keyboard shortcuts
 - [ ] Implement undo/redo system
 - [ ] Add dark/light theme support
 - [ ] Create application icon
@@ -38,3 +31,8 @@
 - [x] Add merge/split/extract page operations (commit: 5609210)
 - [x] Create Makefile for build automation (commit: 5609210)
 - [x] Create README.md (commit: 5609210)
+- [x] Add CLI file argument support (commit: 387ecf4)
+- [x] Implement PDF rendering via poppler-utils (commit: 1ed319f)
+- [x] Add keyboard shortcuts (commit: 671096d)
+- [x] Implement merge PDFs dialog (commit: 395ed94)
+- [x] Add password protection support (commit: 09cdcff)
