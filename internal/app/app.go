@@ -29,6 +29,5 @@ func New() *App {
 // Run starts the application.
 func (a *App) Run() {
 	a.window = ui.NewMainWindow(a.fyneApp, a.config)
-	a.window.Show()
-	a.fyneApp.Run()
+	a.window.ShowAndRun()
 }

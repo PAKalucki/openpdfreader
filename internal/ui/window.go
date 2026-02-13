@@ -45,6 +45,11 @@ func (mw *MainWindow) Show() {
 	mw.window.Show()
 }
 
+// ShowAndRun displays the window and runs the event loop.
+func (mw *MainWindow) ShowAndRun() {
+	mw.window.ShowAndRun()
+}
+
 func (mw *MainWindow) setupUI() {
 	// Create viewer
 	mw.viewer = NewViewer()
