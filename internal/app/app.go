@@ -11,9 +11,10 @@ import (
 
 // App represents the main application.
 type App struct {
-	fyneApp fyne.App
-	window  *ui.MainWindow
-	config  *config.Config
+	fyneApp     fyne.App
+	window      *ui.MainWindow
+	config      *config.Config
+	initialFile string
 }
 
 // New creates a new application instance.
@@ -26,8 +27,18 @@ func New() *App {
 	}
 }
 
+// SetInitialFile sets a file to open on startup.
+func (a *App) SetInitialFile(path string) {
+	a.initialFile = path
+}
+
 // Run starts the application.
 func (a *App) Run() {
 	a.window = ui.NewMainWindow(a.fyneApp, a.config)
+
+	if a.initialFile != "" {
+		a.window.OpenFile(a.initialFile)
+	}
+
 	a.window.ShowAndRun()
 }

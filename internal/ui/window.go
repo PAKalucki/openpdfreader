@@ -42,11 +42,13 @@ func NewMainWindow(fyneApp fyne.App, cfg *config.Config) *MainWindow {
 
 // Show displays the main window.
 func (mw *MainWindow) Show() {
+	mw.window.CenterOnScreen()
 	mw.window.Show()
 }
 
 // ShowAndRun displays the window and runs the event loop.
 func (mw *MainWindow) ShowAndRun() {
+	mw.window.CenterOnScreen()
 	mw.window.ShowAndRun()
 }
 

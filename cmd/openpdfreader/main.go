@@ -2,10 +2,18 @@
 package main
 
 import (
+	"os"
+
 	"github.com/openpdfreader/openpdfreader/internal/app"
 )
 
 func main() {
-	application := app.New()
-	application.Run()
+	a := app.New()
+
+	// Open file from command line argument
+	if len(os.Args) > 1 {
+		a.SetInitialFile(os.Args[1])
+	}
+
+	a.Run()
 }
