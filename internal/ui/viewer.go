@@ -23,29 +23,29 @@ func (f *fixedSizeLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
 
 func (f *fixedSizeLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	for _, o := range objects {
-		o.Resize(size)
+		o.Resize(f.size)
 		o.Move(fyne.NewPos(0, 0))
 	}
 }
 
 // Viewer displays PDF pages.
 type Viewer struct {
-	container    *fyne.Container
-	scroll       *container.Scroll
-	pageImage    *canvas.Image
-	imageHolder  *fyne.Container
-	sizeLayout   *fixedSizeLayout
-	document     *pdf.Document
-	currentPage  int
-	zoom         float64
-	pageLabel    *widget.Label
-	zoomLabel    *widget.Label
-	prevBtn      *widget.Button
-	nextBtn      *widget.Button
-	cachedImage  image.Image
-	cachedPage   int
-	baseWidth    int
-	baseHeight   int
+	container   *fyne.Container
+	scroll      *container.Scroll
+	pageImage   *canvas.Image
+	imageHolder *fyne.Container
+	sizeLayout  *fixedSizeLayout
+	document    *pdf.Document
+	currentPage int
+	zoom        float64
+	pageLabel   *widget.Label
+	zoomLabel   *widget.Label
+	prevBtn     *widget.Button
+	nextBtn     *widget.Button
+	cachedImage image.Image
+	cachedPage  int
+	baseWidth   int
+	baseHeight  int
 }
 
 // NewViewer creates a new PDF viewer widget.
@@ -137,13 +137,44 @@ func (v *Viewer) ZoomOut() {
 
 // FitToPage fits the page to the viewport.
 func (v *Viewer) FitToPage() {
-	v.zoom = 1.0
+	if v.cachedImage == nil {
+		return
+	}
+
+	viewport := v.scroll.Size()
+	if viewport.Width <= 0 || viewport.Height <= 0 {
+		return
+	}
+
+	baseWidth := float32(v.baseWidth) / 2.0
+	baseHeight := float32(v.baseHeight) / 2.0
+	if baseWidth <= 0 || baseHeight <= 0 {
+		return
+	}
+
+	widthZoom := float64(viewport.Width / baseWidth)
+	heightZoom := float64(viewport.Height / baseHeight)
+	v.zoom = clampZoom(minFloat(widthZoom, heightZoom))
 	v.applyZoom()
 }
 
 // FitToWidth fits the page width to the viewport.
 func (v *Viewer) FitToWidth() {
-	v.zoom = 1.0
+	if v.cachedImage == nil {
+		return
+	}
+
+	viewport := v.scroll.Size()
+	if viewport.Width <= 0 {
+		return
+	}
+
+	baseWidth := float32(v.baseWidth) / 2.0
+	if baseWidth <= 0 {
+		return
+	}
+
+	v.zoom = clampZoom(float64(viewport.Width / baseWidth))
 	v.applyZoom()
 }
 
@@ -160,8 +191,25 @@ func (v *Viewer) applyZoom() {
 	// Update the layout size and refresh
 	v.sizeLayout.size = fyne.NewSize(scaledWidth, scaledHeight)
 	v.imageHolder.Refresh()
-	
+
 	v.zoomLabel.SetText(fmt.Sprintf("%.0f%%", v.zoom*100))
+}
+
+func clampZoom(zoom float64) float64 {
+	if zoom < 0.25 {
+		return 0.25
+	}
+	if zoom > 5.0 {
+		return 5.0
+	}
+	return zoom
+}
+
+func minFloat(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (v *Viewer) renderCurrentPage() {
