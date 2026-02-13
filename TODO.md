@@ -40,3 +40,6 @@
 - [x] Fix merge dialog selection tracking (commit: af8b15c)
 - [x] Fix password-protected PDF opening (commit: 78978cb)
 - [x] Fix ChangePassword owner password API (commit: 78978cb)
+- [x] Fix zoom with async rendering and cached image scaling (commit: 000f36f)
+- [x] Add unit tests for pdf package (commit: 4db0bf5)
+- [x] Fix merge input validation (commit: 4db0bf5)
