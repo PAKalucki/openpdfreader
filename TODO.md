@@ -27,14 +27,14 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
-- [x] Create initial project plan in project.md
-- [x] Update project plan for Go + Fyne stack
-- [x] Set up Go project structure
-- [x] Create main application entry point
-- [x] Create main window with menus and toolbar
-- [x] Create PDF viewer widget (placeholder rendering)
-- [x] Create sidebar for page list
-- [x] Implement basic PDF document loading with pdfcpu
-- [x] Add merge/split/extract page operations
-- [x] Create Makefile for build automation
-- [x] Create README.md
+- [x] Create initial project plan in project.md (commit: 5609210)
+- [x] Update project plan for Go + Fyne stack (commit: 5609210)
+- [x] Set up Go project structure (commit: 5609210)
+- [x] Create main application entry point (commit: 5609210)
+- [x] Create main window with menus and toolbar (commit: 5609210)
+- [x] Create PDF viewer widget (placeholder rendering) (commit: 5609210)
+- [x] Create sidebar for page list (commit: 5609210)
+- [x] Implement basic PDF document loading with pdfcpu (commit: 5609210)
+- [x] Add merge/split/extract page operations (commit: 5609210)
+- [x] Create Makefile for build automation (commit: 5609210)
+- [x] Create README.md (commit: 5609210)
