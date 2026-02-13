@@ -5,7 +5,7 @@ BINARY=openpdfreader
 BINARY_WINDOWS=$(BINARY).exe
 
 # Go parameters
-GOCMD=go
+GOCMD=/usr/local/go/bin/go
 GOBUILD=$(GOCMD) build
 GORUN=$(GOCMD) run
 GOTEST=$(GOCMD) test

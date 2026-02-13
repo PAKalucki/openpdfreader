@@ -132,8 +132,46 @@ func (mw *MainWindow) setupMenus() {
 }
 
 func (mw *MainWindow) setupShortcuts() {
-	mw.window.Canvas().AddShortcut(&fyne.ShortcutCopy{}, func(_ fyne.Shortcut) {
+	canvas := mw.window.Canvas()
+
+	// File shortcuts
+	canvas.AddShortcut(&fyne.ShortcutCopy{}, func(_ fyne.Shortcut) {
 		mw.onCopy()
+	})
+
+	// Custom shortcuts using desktop package
+	mw.window.Canvas().SetOnTypedKey(func(ev *fyne.KeyEvent) {
+		// Handle key events
+		switch ev.Name {
+		case fyne.KeyPageUp:
+			if mw.viewer != nil {
+				mw.viewer.GoToPage(mw.viewer.currentPage - 1)
+			}
+		case fyne.KeyPageDown:
+			if mw.viewer != nil {
+				mw.viewer.GoToPage(mw.viewer.currentPage + 1)
+			}
+		case fyne.KeyHome:
+			if mw.viewer != nil {
+				mw.viewer.GoToPage(0)
+			}
+		case fyne.KeyEnd:
+			if mw.viewer != nil && mw.document != nil {
+				mw.viewer.GoToPage(mw.document.PageCount() - 1)
+			}
+		case fyne.KeyF11:
+			mw.onFullscreen()
+		case fyne.KeyEscape:
+			if mw.window.FullScreen() {
+				mw.window.SetFullScreen(false)
+			}
+		case fyne.KeyPlus, fyne.KeyEqual:
+			mw.onZoomIn()
+		case fyne.KeyMinus:
+			mw.onZoomOut()
+		case fyne.Key0:
+			mw.onFitToPage()
+		}
 	})
 }
 
