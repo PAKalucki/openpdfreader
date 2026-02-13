@@ -36,6 +36,7 @@ Format:
    - Keep commits atomic (one logical change per commit)
 
 3. **After completing a task:**
+   - run tests to confirm it's workingS
    - Update `TODO.md` - mark task as done with `[x]`
    - Move completed task to "Completed" section
    - Commit the change with a descriptive message

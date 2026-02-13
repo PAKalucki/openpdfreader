@@ -9,6 +9,7 @@ import (
 
 	"github.com/openpdfreader/openpdfreader/internal/config"
 	"github.com/openpdfreader/openpdfreader/internal/pdf"
+	"github.com/openpdfreader/openpdfreader/internal/ui/dialogs"
 )
 
 // MainWindow represents the main application window.
@@ -247,7 +248,15 @@ func (mw *MainWindow) onFitToPage()         { mw.viewer.FitToPage() }
 func (mw *MainWindow) onFitToWidth()        { mw.viewer.FitToWidth() }
 func (mw *MainWindow) onToggleThumbnails()  { mw.sidebar.Toggle() }
 func (mw *MainWindow) onFullscreen()        { mw.window.SetFullScreen(!mw.window.FullScreen()) }
-func (mw *MainWindow) onMergePDFs()         { /* TODO: Show merge dialog */ }
+
+func (mw *MainWindow) onMergePDFs() {
+	dlg := dialogs.NewMergeDialog(mw.window, func(files []string, output string) {
+		// Optionally open the merged file
+		mw.OpenFile(output)
+	})
+	dlg.Show()
+}
+
 func (mw *MainWindow) onSplitPDF()          { /* TODO: Show split dialog */ }
 func (mw *MainWindow) onExtractPages()      { /* TODO: Show extract dialog */ }
 func (mw *MainWindow) onDeletePages()       { /* TODO: Show delete dialog */ }
