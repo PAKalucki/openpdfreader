@@ -73,10 +73,10 @@ func (mw *MainWindow) setupUI() {
 	// Main layout
 	content := container.NewBorder(
 		mw.toolbar.Container(), // top
-		mw.statusBar,          // bottom
-		nil,                   // left
-		nil,                   // right
-		split,                 // center
+		mw.statusBar,           // bottom
+		nil,                    // left
+		nil,                    // right
+		split,                  // center
 	)
 
 	mw.window.SetContent(content)
@@ -256,17 +256,17 @@ func (mw *MainWindow) onSaveAs() {
 	}, mw.window)
 }
 
-func (mw *MainWindow) onPrint()             { /* TODO: Implement print dialog */ }
-func (mw *MainWindow) onUndo()              { /* TODO: Implement undo */ }
-func (mw *MainWindow) onRedo()              { /* TODO: Implement redo */ }
-func (mw *MainWindow) onCopy()              { /* TODO: Implement copy */ }
-func (mw *MainWindow) onSelectAll()         { /* TODO: Implement select all */ }
-func (mw *MainWindow) onZoomIn()            { mw.viewer.ZoomIn() }
-func (mw *MainWindow) onZoomOut()           { mw.viewer.ZoomOut() }
-func (mw *MainWindow) onFitToPage()         { mw.viewer.FitToPage() }
-func (mw *MainWindow) onFitToWidth()        { mw.viewer.FitToWidth() }
-func (mw *MainWindow) onToggleThumbnails()  { mw.sidebar.Toggle() }
-func (mw *MainWindow) onFullscreen()        { mw.window.SetFullScreen(!mw.window.FullScreen()) }
+func (mw *MainWindow) onPrint()            { /* TODO: Implement print dialog */ }
+func (mw *MainWindow) onUndo()             { /* TODO: Implement undo */ }
+func (mw *MainWindow) onRedo()             { /* TODO: Implement redo */ }
+func (mw *MainWindow) onCopy()             { /* TODO: Implement copy */ }
+func (mw *MainWindow) onSelectAll()        { /* TODO: Implement select all */ }
+func (mw *MainWindow) onZoomIn()           { mw.viewer.ZoomIn() }
+func (mw *MainWindow) onZoomOut()          { mw.viewer.ZoomOut() }
+func (mw *MainWindow) onFitToPage()        { mw.viewer.FitToPage() }
+func (mw *MainWindow) onFitToWidth()       { mw.viewer.FitToWidth() }
+func (mw *MainWindow) onToggleThumbnails() { mw.sidebar.Toggle() }
+func (mw *MainWindow) onFullscreen()       { mw.window.SetFullScreen(!mw.window.FullScreen()) }
 
 func (mw *MainWindow) onMergePDFs() {
 	dlg := dialogs.NewMergeDialog(mw.window, func(files []string, output string) {
@@ -276,10 +276,20 @@ func (mw *MainWindow) onMergePDFs() {
 	dlg.Show()
 }
 
-func (mw *MainWindow) onSplitPDF()          { /* TODO: Show split dialog */ }
-func (mw *MainWindow) onExtractPages()      { /* TODO: Show extract dialog */ }
-func (mw *MainWindow) onDeletePages()       { /* TODO: Show delete dialog */ }
-func (mw *MainWindow) onRotatePages()       { /* TODO: Show rotate dialog */ }
+func (mw *MainWindow) onSplitPDF() {
+	defaultInputPath := ""
+	if mw.document != nil {
+		defaultInputPath = mw.document.Path()
+	}
+
+	dlg := dialogs.NewSplitDialog(mw.window, defaultInputPath, func(outputDir string) {
+		mw.statusBar.SetText("Split complete: " + outputDir)
+	})
+	dlg.Show()
+}
+func (mw *MainWindow) onExtractPages() { /* TODO: Show extract dialog */ }
+func (mw *MainWindow) onDeletePages()  { /* TODO: Show delete dialog */ }
+func (mw *MainWindow) onRotatePages()  { /* TODO: Show rotate dialog */ }
 
 func (mw *MainWindow) onAddPassword() {
 	if mw.document == nil {

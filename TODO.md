@@ -1,7 +1,6 @@
 # TODO
 
 ## In Progress
-- [ ] Implement split PDF dialog
 - [ ] Add thumbnail rendering in sidebar
 
 ## Backlog
@@ -19,6 +18,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Implement split PDF dialog (commit: d4d958f)
 - [x] Fix zoom functionality (commit: 8e2f6a5)
 - [x] Create initial project plan in project.md (commit: 5609210)
 - [x] Update project plan for Go + Fyne stack (commit: 5609210)
