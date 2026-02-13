@@ -13,18 +13,20 @@ import (
 
 // MergeDialog handles the PDF merge functionality.
 type MergeDialog struct {
-	window    fyne.Window
-	files     []string
-	fileList  *widget.List
-	onMerge   func(files []string, output string)
+	window        fyne.Window
+	files         []string
+	fileList      *widget.List
+	selectedIndex int
+	onMerge       func(files []string, output string)
 }
 
 // NewMergeDialog creates a new merge dialog.
 func NewMergeDialog(window fyne.Window, onMerge func(files []string, output string)) *MergeDialog {
 	return &MergeDialog{
-		window:  window,
-		files:   []string{},
-		onMerge: onMerge,
+		window:        window,
+		files:         []string{},
+		selectedIndex: -1,
+		onMerge:       onMerge,
 	}
 }
 
@@ -51,6 +53,14 @@ func (d *MergeDialog) Show() {
 		},
 	)
 
+	// Track selection
+	d.fileList.OnSelected = func(id widget.ListItemID) {
+		d.selectedIndex = id
+	}
+	d.fileList.OnUnselected = func(id widget.ListItemID) {
+		d.selectedIndex = -1
+	}
+
 	// Buttons
 	addBtn := widget.NewButton("Add PDF...", func() {
 		dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
@@ -63,16 +73,18 @@ func (d *MergeDialog) Show() {
 	})
 
 	moveUpBtn := widget.NewButton("Move Up", func() {
-		selected := d.fileList.Length() // TODO: Need to track selection
-		if selected > 0 {
-			d.moveUp(selected)
+		if d.selectedIndex > 0 {
+			d.moveUp(d.selectedIndex)
+			d.selectedIndex--
+			d.fileList.Select(d.selectedIndex)
 		}
 	})
 
 	moveDownBtn := widget.NewButton("Move Down", func() {
-		selected := d.fileList.Length() // TODO: Need to track selection
-		if selected >= 0 && selected < len(d.files)-1 {
-			d.moveDown(selected)
+		if d.selectedIndex >= 0 && d.selectedIndex < len(d.files)-1 {
+			d.moveDown(d.selectedIndex)
+			d.selectedIndex++
+			d.fileList.Select(d.selectedIndex)
 		}
 	})
 
