@@ -1,13 +1,10 @@
 # TODO
 
 ## In Progress
-- [ ] Fix zoom functionality
-- [ ] Implement split PDF dialog
 - [ ] Add thumbnail rendering in sidebar
 
 ## Backlog
 - [ ] Implement text selection and copy
-- [ ] Implement zoom fit to page/width calculations
 - [ ] Add print dialog
 - [ ] Add annotation tools (highlight, text, shapes)
 - [ ] Implement form field detection and filling
@@ -21,6 +18,8 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Implement split PDF dialog (commit: d4d958f)
+- [x] Fix zoom functionality (commit: 8e2f6a5)
 - [x] Create initial project plan in project.md (commit: 5609210)
 - [x] Update project plan for Go + Fyne stack (commit: 5609210)
 - [x] Set up Go project structure (commit: 5609210)
