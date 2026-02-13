@@ -35,12 +35,26 @@ func (s *Security) RemovePassword(inputPath, outputPath, password string) error 
 }
 
 // ChangePassword changes the passwords on an encrypted PDF.
+// Both user and owner passwords can be changed.
 func (s *Security) ChangePassword(inputPath, outputPath, oldPw, newUserPw, newOwnerPw string) error {
 	conf := model.NewDefaultConfiguration()
 	conf.UserPW = oldPw
 	conf.OwnerPW = oldPw
 
-	return api.ChangeUserPasswordFile(inputPath, outputPath, oldPw, newUserPw, conf)
+	// Change user password first
+	err := api.ChangeUserPasswordFile(inputPath, outputPath, oldPw, newUserPw, conf)
+	if err != nil {
+		return err
+	}
+
+	// If owner password is different, change it too
+	if newOwnerPw != "" && newOwnerPw != newUserPw {
+		conf.UserPW = newUserPw
+		conf.OwnerPW = oldPw
+		return api.ChangeOwnerPasswordFile(outputPath, outputPath, oldPw, newOwnerPw, conf)
+	}
+
+	return nil
 }
 
 // IsEncrypted checks if a PDF is password protected.

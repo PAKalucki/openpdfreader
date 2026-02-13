@@ -5,6 +5,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"os"
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -50,16 +51,20 @@ func Open(path string) (*Document, error) {
 
 // OpenWithPassword opens a password-protected PDF file.
 func OpenWithPassword(path, password string) (*Document, error) {
-	// First, decrypt the file to a temp location, then read it
-	// For simplicity, we'll use the DecryptFile API and read from output
-	// This is a workaround since pdfcpu's in-memory decrypt API is complex
+	// Open the file
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
 
+	// Create configuration with password
 	conf := model.NewDefaultConfiguration()
 	conf.UserPW = password
 	conf.OwnerPW = password
 
-	// Try reading with configuration
-	ctx, err := api.ReadContextFile(path)
+	// Read with password configuration
+	ctx, err := api.ReadContext(f, conf)
 	if err != nil {
 		return nil, err
 	}
