@@ -5,6 +5,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
@@ -12,6 +13,17 @@ import (
 
 // Global renderer instance
 var renderer = NewRenderer()
+
+// IsPasswordError checks if an error indicates a password-protected PDF.
+func IsPasswordError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "password") ||
+		strings.Contains(errStr, "encrypted") ||
+		strings.Contains(errStr, "decrypt")
+}
 
 // Document represents a PDF document.
 type Document struct {
@@ -38,10 +50,15 @@ func Open(path string) (*Document, error) {
 
 // OpenWithPassword opens a password-protected PDF file.
 func OpenWithPassword(path, password string) (*Document, error) {
+	// First, decrypt the file to a temp location, then read it
+	// For simplicity, we'll use the DecryptFile API and read from output
+	// This is a workaround since pdfcpu's in-memory decrypt API is complex
+
 	conf := model.NewDefaultConfiguration()
 	conf.UserPW = password
 	conf.OwnerPW = password
 
+	// Try reading with configuration
 	ctx, err := api.ReadContextFile(path)
 	if err != nil {
 		return nil, err

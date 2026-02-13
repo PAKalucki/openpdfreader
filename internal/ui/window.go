@@ -180,9 +180,30 @@ func (mw *MainWindow) setupShortcuts() {
 func (mw *MainWindow) OpenFile(path string) error {
 	doc, err := pdf.Open(path)
 	if err != nil {
+		// Check if it's a password-protected PDF
+		if pdf.IsPasswordError(err) {
+			mw.openPasswordProtectedFile(path)
+			return nil
+		}
 		return err
 	}
 
+	mw.setDocument(doc, path)
+	return nil
+}
+
+func (mw *MainWindow) openPasswordProtectedFile(path string) {
+	dialogs.ShowPasswordDialog(mw.window, "Password Protected PDF", func(password string) {
+		doc, err := pdf.OpenWithPassword(path, password)
+		if err != nil {
+			dialog.ShowError(err, mw.window)
+			return
+		}
+		mw.setDocument(doc, path)
+	})
+}
+
+func (mw *MainWindow) setDocument(doc *pdf.Document, path string) {
 	mw.document = doc
 	mw.viewer.SetDocument(doc)
 	mw.sidebar.SetDocument(doc)
@@ -191,8 +212,6 @@ func (mw *MainWindow) OpenFile(path string) error {
 
 	mw.config.AddRecentFile(path)
 	mw.config.Save()
-
-	return nil
 }
 
 // Menu action handlers
@@ -261,8 +280,59 @@ func (mw *MainWindow) onSplitPDF()          { /* TODO: Show split dialog */ }
 func (mw *MainWindow) onExtractPages()      { /* TODO: Show extract dialog */ }
 func (mw *MainWindow) onDeletePages()       { /* TODO: Show delete dialog */ }
 func (mw *MainWindow) onRotatePages()       { /* TODO: Show rotate dialog */ }
-func (mw *MainWindow) onAddPassword()       { /* TODO: Show add password dialog */ }
-func (mw *MainWindow) onRemovePassword()    { /* TODO: Show remove password dialog */ }
+
+func (mw *MainWindow) onAddPassword() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	dialogs.ShowSetPasswordDialog(mw.window, func(userPw, ownerPw string) {
+		// Save to a new file
+		dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			writer.Close()
+
+			outputPath := writer.URI().Path()
+			security := pdf.NewSecurity()
+			err = security.AddPassword(mw.document.Path(), outputPath, userPw, ownerPw)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			dialog.ShowInformation("Success", "Password added to:\n"+outputPath, mw.window)
+		}, mw.window)
+	})
+}
+
+func (mw *MainWindow) onRemovePassword() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	dialogs.ShowPasswordDialog(mw.window, "Enter Current Password", func(password string) {
+		dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			writer.Close()
+
+			outputPath := writer.URI().Path()
+			security := pdf.NewSecurity()
+			err = security.RemovePassword(mw.document.Path(), outputPath, password)
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			dialog.ShowInformation("Success", "Password removed. Saved to:\n"+outputPath, mw.window)
+		}, mw.window)
+	})
+}
 
 func (mw *MainWindow) onAbout() {
 	dialog.ShowInformation("About OpenPDF Reader",
