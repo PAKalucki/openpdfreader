@@ -70,6 +70,9 @@ make build-windows
 
 # All platforms (requires fyne-cross)
 make cross-compile
+
+# Generate installer artifacts for Linux and Windows (requires Docker + fyne-cross)
+make installers
 ```
 
 ## Usage

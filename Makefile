@@ -1,4 +1,4 @@
-.PHONY: all build run test clean install-deps lint fmt
+.PHONY: all build run test clean install-deps lint fmt installers install-fyne-cross cross-compile
 
 # Binary name
 BINARY=openpdfreader
@@ -61,6 +61,10 @@ install-fyne-cross:
 cross-compile: install-fyne-cross
 	fyne-cross linux -arch=amd64 ./cmd/openpdfreader
 	fyne-cross windows -arch=amd64 ./cmd/openpdfreader
+
+# Build installer artifacts for Linux and Windows
+installers: install-fyne-cross
+	./scripts/build_installers.sh
 
 # Development helpers
 dev: fmt vet run
