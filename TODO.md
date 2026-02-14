@@ -3,13 +3,13 @@
 ## In Progress
 
 ## Backlog
-- [ ] Implement undo/redo system
 - [ ] Implement cli work mode to perform PDF file operations without GUI
 - [ ] Add dark/light theme support
 - [ ] Create application icon
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Implement undo/redo system (commit: 190aa0e)
 - [x] implement pdf to text document export (commit: 8cac744)
 - [x] Implement PDF to image export (commit: 0edcb79)
 - [x] Add redaction tools (commit: 602b037)
