@@ -3,11 +3,11 @@
 ## In Progress
 
 ## Backlog
-- [ ] Add dark/light theme support
 - [ ] Create application icon
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Add dark/light theme support (commit: f785e7f)
 - [x] Implement cli work mode to perform PDF file operations without GUI (commit: e95c227)
 - [x] Implement undo/redo system (commit: 190aa0e)
 - [x] implement pdf to text document export (commit: 8cac744)
