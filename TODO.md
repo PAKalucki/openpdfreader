@@ -3,8 +3,16 @@
 ## In Progress
 
 ## Backlog
+- [ ] fix print can send only to default printer, add context menu to pick printers and print options
+- [ ] fix context windows for example like open file are not resizable or dragable
+- [ ] fix UI hangs when 3 large (600 pages, 3 mb) files are open and navigation is used
+- [ ] update split functionality to split at X page
+- [ ] fix delete pages not working
+- [ ] fix add highlight, annotation, shape, redaction not possible to position, all of them are just inserted in middle of page
+- [ ] add option to use tools with right click
 
 ## Completed
+- [x] fix rotate page not working (commit: ab54d9c)
 - [x] Create installers for Windows/Linux (commit: 767833c)
 - [x] Create application icon (commit: dce0bee)
 - [x] Add dark/light theme support (commit: f785e7f)
