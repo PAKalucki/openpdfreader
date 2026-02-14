@@ -4,7 +4,6 @@
 
 ## Backlog
 - [ ] Implement text selection and copy
-- [ ] Add print dialog
 - [ ] Add annotation tools (highlight, text, shapes)
 - [ ] Implement form field detection and filling
 - [ ] Add signature pad
@@ -18,6 +17,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Add print dialog (commit: 0f2e04c)
 - [x] Add thumbnail rendering in sidebar (commit: 7e6c79b)
 - [x] Implement split PDF dialog (commit: d4d958f)
 - [x] Fix zoom functionality (commit: 8e2f6a5)
@@ -43,4 +43,3 @@
 - [x] Add unit tests for pdf package (commit: 4db0bf5)
 - [x] Fix merge input validation (commit: 4db0bf5)
 - [x] Upgrade Fyne from v2.5.4 to v2.7.2 (commit: 7fb5cac)
-- [ ] Zoom implementation attempts (commits: 1873ac8, 000f36f, 39d5322, b016767) - NOT WORKING

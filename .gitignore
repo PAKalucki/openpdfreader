@@ -1,6 +1,7 @@
 # Build outputs
 build/
 dist/
+openpdfreader
 *.exe
 *.exe~
 *.dll
