@@ -256,7 +256,26 @@ func (mw *MainWindow) onSaveAs() {
 	}, mw.window)
 }
 
-func (mw *MainWindow) onPrint()            { /* TODO: Implement print dialog */ }
+func (mw *MainWindow) onPrint() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	dialog.ShowConfirm("Print", "Send this document to the default printer?", func(confirmed bool) {
+		if !confirmed {
+			return
+		}
+
+		if err := pdf.PrintFile(mw.document.Path()); err != nil {
+			dialog.ShowError(err, mw.window)
+			return
+		}
+
+		mw.statusBar.SetText("Sent to printer: " + mw.document.Path())
+	}, mw.window)
+}
+
 func (mw *MainWindow) onUndo()             { /* TODO: Implement undo */ }
 func (mw *MainWindow) onRedo()             { /* TODO: Implement redo */ }
 func (mw *MainWindow) onCopy()             { /* TODO: Implement copy */ }
