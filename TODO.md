@@ -3,7 +3,6 @@
 ## In Progress
 
 ## Backlog
-- [ ] Add signature pad
 - [ ] Add redaction tools
 - [ ] Implement PDF to image export
 - [ ] implement pdf to text document export
@@ -14,6 +13,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Add signature pad (commit: bfbd381)
 - [x] add support for opening multiple PDFs in tabs (commit: 2dcc183)
 - [x] Set up CI/CD pipeline (commit: b550ee6)
 - [x] Implement form field detection and filling (commit: b62a963)
