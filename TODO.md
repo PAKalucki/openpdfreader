@@ -3,9 +3,9 @@
 ## In Progress
 
 ## Backlog
-- [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Create installers for Windows/Linux (commit: 767833c)
 - [x] Create application icon (commit: dce0bee)
 - [x] Add dark/light theme support (commit: f785e7f)
 - [x] Implement cli work mode to perform PDF file operations without GUI (commit: e95c227)
