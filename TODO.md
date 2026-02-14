@@ -3,17 +3,19 @@
 ## In Progress
 
 ## Backlog
+- [ ] add support for opening multiple PDFs in tabs
 - [ ] Add signature pad
 - [ ] Add redaction tools
 - [ ] Implement PDF to image export
+- [ ] implement pdf to text document export
 - [ ] Implement undo/redo system
+- [ ] Implement cli work mode to perform PDF file operations without GUI
 - [ ] Add dark/light theme support
 - [ ] Create application icon
-- [ ] Set up CI/CD pipeline
-- [ ] Implement cli work mode to perform PDF file operations without GUI
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Set up CI/CD pipeline (commit: b550ee6)
 - [x] Implement form field detection and filling (commit: b62a963)
 - [x] Add annotation tools (highlight, text, shapes) (commit: c4a157b)
 - [x] Implement text selection and copy (commit: 5b5fc91)
