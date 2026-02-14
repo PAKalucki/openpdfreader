@@ -3,7 +3,6 @@
 ## In Progress
 
 ## Backlog
-- [ ] Implement form field detection and filling
 - [ ] Add signature pad
 - [ ] Add redaction tools
 - [ ] Implement PDF to image export
@@ -15,6 +14,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Implement form field detection and filling (commit: b62a963)
 - [x] Add annotation tools (highlight, text, shapes) (commit: c4a157b)
 - [x] Implement text selection and copy (commit: 5b5fc91)
 - [x] Add print dialog (commit: 0f2e04c)
