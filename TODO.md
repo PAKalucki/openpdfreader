@@ -1,7 +1,6 @@
 # TODO
 
 ## In Progress
-- [ ] Add thumbnail rendering in sidebar
 
 ## Backlog
 - [ ] Implement text selection and copy
@@ -15,9 +14,11 @@
 - [ ] Add dark/light theme support
 - [ ] Create application icon
 - [ ] Set up CI/CD pipeline
+- [ ] Implement cli work mode to perform PDF file operations without GUI
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Add thumbnail rendering in sidebar (commit: 7e6c79b)
 - [x] Implement split PDF dialog (commit: d4d958f)
 - [x] Fix zoom functionality (commit: 8e2f6a5)
 - [x] Create initial project plan in project.md (commit: 5609210)
