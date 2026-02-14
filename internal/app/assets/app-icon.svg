@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="OpenPDF Reader icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b5fff"/>
+      <stop offset="100%" stop-color="#0042b3"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="224" height="224" rx="44" fill="url(#bg)"/>
+  <path d="M72 56h86l34 34v110a8 8 0 0 1-8 8H72a8 8 0 0 1-8-8V64a8 8 0 0 1 8-8z" fill="#ffffff"/>
+  <path d="M158 56v34h34" fill="#d9e7ff"/>
+  <path d="M158 56l34 34h-26a8 8 0 0 1-8-8V56z" fill="#c5d9ff"/>
+  <rect x="86" y="110" width="84" height="14" rx="7" fill="#0b5fff"/>
+  <rect x="86" y="136" width="84" height="14" rx="7" fill="#0b5fff"/>
+  <rect x="86" y="162" width="56" height="14" rx="7" fill="#0b5fff"/>
+</svg>

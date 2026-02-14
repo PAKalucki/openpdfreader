@@ -24,6 +24,7 @@ type App struct {
 func New() *App {
 	cfg := config.Load()
 	fyneApp := app.NewWithID("com.openpdfreader.app")
+	fyneApp.SetIcon(appIconResource())
 	applyConfiguredTheme(fyneApp, cfg)
 
 	return &App{
