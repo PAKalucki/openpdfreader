@@ -79,6 +79,15 @@ make cross-compile
 
 # Open a specific file
 ./build/openpdfreader /path/to/document.pdf
+
+# Run in CLI work mode (no GUI)
+./build/openpdfreader --cli --help
+
+# Merge PDFs via CLI
+./build/openpdfreader --cli merge --inputs a.pdf,b.pdf --output merged.pdf
+
+# Split PDF via CLI
+./build/openpdfreader --cli split --input input.pdf --output-dir ./split-out
 ```
 
 ## Development
