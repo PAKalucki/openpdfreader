@@ -5,6 +5,7 @@ An open-source, cross-platform PDF viewer and editor.
 ## Features
 
 - **View PDFs** - Open and navigate PDF documents with zoom, scroll, and page controls
+- **Tabbed Documents** - Open multiple PDF files in separate tabs
 - **Print** - Send the currently opened PDF to the system default printer
 - **Text Copy** - Select all text on the current page and copy it to clipboard
 - **Edit** - Add annotations, highlights, and notes

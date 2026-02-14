@@ -39,3 +39,12 @@ func TestPageNumbersToString(t *testing.T) {
 		t.Fatalf("pageNumbersToString([1,2,5]) = %q, want 1,2,5", got)
 	}
 }
+
+func TestTabTitleForPath(t *testing.T) {
+	if got := tabTitleForPath(""); got != "Untitled" {
+		t.Fatalf("tabTitleForPath(\"\") = %q, want Untitled", got)
+	}
+	if got := tabTitleForPath("/tmp/docs/test.pdf"); got != "test.pdf" {
+		t.Fatalf("tabTitleForPath(path) = %q, want test.pdf", got)
+	}
+}

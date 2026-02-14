@@ -4,6 +4,7 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -20,11 +21,24 @@ import (
 type MainWindow struct {
 	window       fyne.Window
 	config       *config.Config
+	tabs         *container.AppTabs
 	viewer       *Viewer
 	toolbar      *Toolbar
 	sidebar      *Sidebar
 	statusBar    *widget.Label
 	document     *pdf.Document
+	selectedText string
+	selectedPage int
+	openTabs     []*DocumentTab
+}
+
+// DocumentTab represents one open PDF tab.
+type DocumentTab struct {
+	item         *container.TabItem
+	path         string
+	document     *pdf.Document
+	viewer       *Viewer
+	sidebar      *Sidebar
 	selectedText string
 	selectedPage int
 }
@@ -61,21 +75,19 @@ func (mw *MainWindow) ShowAndRun() {
 }
 
 func (mw *MainWindow) setupUI() {
-	// Create viewer
-	mw.viewer = NewViewer()
-
 	// Create toolbar
 	mw.toolbar = NewToolbar(mw)
 
-	// Create sidebar for thumbnails
-	mw.sidebar = NewSidebar(mw)
-
-	// Main content area with sidebar and viewer
-	split := container.NewHSplit(
-		mw.sidebar.Container(),
-		mw.viewer.Container(),
-	)
-	split.SetOffset(0.2) // 20% for sidebar
+	mw.tabs = container.NewAppTabs()
+	mw.tabs.SetTabLocation(container.TabLocationTop)
+	mw.tabs.OnSelected = func(item *container.TabItem) {
+		tab := mw.findTabByItem(item)
+		if tab == nil {
+			return
+		}
+		mw.activateTab(tab)
+		mw.statusBar.SetText("Active: " + tab.path)
+	}
 
 	// Main layout
 	content := container.NewBorder(
@@ -83,7 +95,7 @@ func (mw *MainWindow) setupUI() {
 		mw.statusBar,           // bottom
 		nil,                    // left
 		nil,                    // right
-		split,                  // center
+		mw.tabs,                // center
 	)
 
 	mw.window.SetContent(content)
@@ -218,16 +230,98 @@ func (mw *MainWindow) openPasswordProtectedFile(path string) {
 }
 
 func (mw *MainWindow) setDocument(doc *pdf.Document, path string) {
-	mw.document = doc
-	mw.selectedText = ""
-	mw.selectedPage = -1
-	mw.viewer.SetDocument(doc)
-	mw.sidebar.SetDocument(doc)
-	mw.window.SetTitle("OpenPDF Reader - " + path)
+	tab := mw.newDocumentTab(doc, path)
+	mw.openTabs = append(mw.openTabs, tab)
+	mw.tabs.Append(tab.item)
+	mw.tabs.Select(tab.item)
+	mw.activateTab(tab)
 	mw.statusBar.SetText("Loaded: " + path)
 
 	mw.config.AddRecentFile(path)
 	mw.config.Save()
+}
+
+func (mw *MainWindow) newDocumentTab(doc *pdf.Document, path string) *DocumentTab {
+	viewer := NewViewer()
+	viewer.SetDocument(doc)
+
+	sidebar := NewSidebar(viewer)
+	sidebar.SetDocument(doc)
+
+	split := container.NewHSplit(
+		sidebar.Container(),
+		viewer.Container(),
+	)
+	split.SetOffset(0.2)
+
+	title := tabTitleForPath(path)
+	item := container.NewTabItem(title, split)
+
+	return &DocumentTab{
+		item:         item,
+		path:         path,
+		document:     doc,
+		viewer:       viewer,
+		sidebar:      sidebar,
+		selectedText: "",
+		selectedPage: -1,
+	}
+}
+
+func (mw *MainWindow) findTabByItem(item *container.TabItem) *DocumentTab {
+	for _, tab := range mw.openTabs {
+		if tab.item == item {
+			return tab
+		}
+	}
+	return nil
+}
+
+func (mw *MainWindow) currentTab() *DocumentTab {
+	if mw.tabs == nil {
+		return nil
+	}
+	return mw.findTabByItem(mw.tabs.Selected())
+}
+
+func (mw *MainWindow) activateTab(tab *DocumentTab) {
+	mw.document = tab.document
+	mw.viewer = tab.viewer
+	mw.sidebar = tab.sidebar
+	mw.selectedText = tab.selectedText
+	mw.selectedPage = tab.selectedPage
+	mw.window.SetTitle("OpenPDF Reader - " + tab.path)
+}
+
+func (mw *MainWindow) syncSelectionToCurrentTab() {
+	tab := mw.currentTab()
+	if tab == nil {
+		return
+	}
+	tab.selectedText = mw.selectedText
+	tab.selectedPage = mw.selectedPage
+}
+
+func (mw *MainWindow) updateCurrentTabPath(path string) {
+	tab := mw.currentTab()
+	if tab == nil {
+		return
+	}
+	tab.path = path
+	tab.item.Text = tabTitleForPath(path)
+	mw.tabs.Refresh()
+	mw.window.SetTitle("OpenPDF Reader - " + path)
+}
+
+func tabTitleForPath(path string) string {
+	if path == "" {
+		return "Untitled"
+	}
+	base := filepath.Base(path)
+	if base == "." || base == "/" || base == "" {
+		return path
+	}
+	return base
 }
 
 // Menu action handlers
@@ -268,7 +362,10 @@ func (mw *MainWindow) onSaveAs() {
 		path := writer.URI().Path()
 		if err := mw.document.SaveAs(path); err != nil {
 			dialog.ShowError(err, mw.window)
+			return
 		}
+		mw.updateCurrentTabPath(path)
+		mw.statusBar.SetText("Saved as: " + path)
 	}, mw.window)
 }
 
@@ -311,6 +408,7 @@ func (mw *MainWindow) onCopy() {
 		selectedText = strings.TrimSpace(text)
 		mw.selectedText = selectedText
 		mw.selectedPage = currentPage
+		mw.syncSelectionToCurrentTab()
 	}
 
 	if selectedText == "" {
@@ -339,21 +437,43 @@ func (mw *MainWindow) onSelectAll() {
 	if selectedText == "" {
 		mw.selectedText = ""
 		mw.selectedPage = -1
+		mw.syncSelectionToCurrentTab()
 		dialog.ShowInformation("No Text", "No selectable text found on this page", mw.window)
 		return
 	}
 
 	mw.selectedText = selectedText
 	mw.selectedPage = currentPage
+	mw.syncSelectionToCurrentTab()
 	mw.statusBar.SetText(fmt.Sprintf("Selected all text on page %d", currentPage+1))
 }
 
-func (mw *MainWindow) onZoomIn()           { mw.viewer.ZoomIn() }
-func (mw *MainWindow) onZoomOut()          { mw.viewer.ZoomOut() }
-func (mw *MainWindow) onFitToPage()        { mw.viewer.FitToPage() }
-func (mw *MainWindow) onFitToWidth()       { mw.viewer.FitToWidth() }
-func (mw *MainWindow) onToggleThumbnails() { mw.sidebar.Toggle() }
-func (mw *MainWindow) onFullscreen()       { mw.window.SetFullScreen(!mw.window.FullScreen()) }
+func (mw *MainWindow) onZoomIn() {
+	if mw.viewer != nil {
+		mw.viewer.ZoomIn()
+	}
+}
+func (mw *MainWindow) onZoomOut() {
+	if mw.viewer != nil {
+		mw.viewer.ZoomOut()
+	}
+}
+func (mw *MainWindow) onFitToPage() {
+	if mw.viewer != nil {
+		mw.viewer.FitToPage()
+	}
+}
+func (mw *MainWindow) onFitToWidth() {
+	if mw.viewer != nil {
+		mw.viewer.FitToWidth()
+	}
+}
+func (mw *MainWindow) onToggleThumbnails() {
+	if mw.sidebar != nil {
+		mw.sidebar.Toggle()
+	}
+}
+func (mw *MainWindow) onFullscreen() { mw.window.SetFullScreen(!mw.window.FullScreen()) }
 
 func (mw *MainWindow) onMergePDFs() {
 	dlg := dialogs.NewMergeDialog(mw.window, func(files []string, output string) {

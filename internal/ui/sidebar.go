@@ -18,7 +18,7 @@ import (
 type Sidebar struct {
 	container  *fyne.Container
 	list       *widget.List
-	window     *MainWindow
+	viewer     *Viewer
 	document   *pdf.Document
 	visible    bool
 	cacheMu    sync.RWMutex
@@ -29,9 +29,9 @@ type Sidebar struct {
 const thumbnailScale = 0.35
 
 // NewSidebar creates a new sidebar.
-func NewSidebar(window *MainWindow) *Sidebar {
+func NewSidebar(viewer *Viewer) *Sidebar {
 	s := &Sidebar{
-		window:     window,
+		viewer:     viewer,
 		visible:    true,
 		cache:      make(map[int]image.Image),
 		emptyThumb: buildPlaceholderThumbnail(),
@@ -86,8 +86,8 @@ func NewSidebar(window *MainWindow) *Sidebar {
 	)
 
 	s.list.OnSelected = func(id widget.ListItemID) {
-		if s.window.viewer != nil {
-			s.window.viewer.GoToPage(int(id))
+		if s.viewer != nil {
+			s.viewer.GoToPage(int(id))
 		}
 	}
 
