@@ -126,6 +126,10 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItem("Delete Pages...", mw.onDeletePages),
 		fyne.NewMenuItem("Rotate Pages...", mw.onRotatePages),
 		fyne.NewMenuItemSeparator(),
+		fyne.NewMenuItem("Add Highlight...", mw.onAddHighlightAnnotation),
+		fyne.NewMenuItem("Add Text Annotation...", mw.onAddTextAnnotation),
+		fyne.NewMenuItem("Add Shape Annotation...", mw.onAddShapeAnnotation),
+		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Add Password...", mw.onAddPassword),
 		fyne.NewMenuItem("Remove Password...", mw.onRemovePassword),
 	)
@@ -369,6 +373,76 @@ func (mw *MainWindow) onSplitPDF() {
 func (mw *MainWindow) onExtractPages() { /* TODO: Show extract dialog */ }
 func (mw *MainWindow) onDeletePages()  { /* TODO: Show delete dialog */ }
 func (mw *MainWindow) onRotatePages()  { /* TODO: Show rotate dialog */ }
+
+func (mw *MainWindow) onAddHighlightAnnotation() {
+	mw.promptAnnotationContents("Add Highlight", "Highlight content", "Highlight", func(contents string) error {
+		return pdf.NewAnnotator().AddHighlight(mw.document.Path(), "", mw.viewer.CurrentPage(), contents)
+	})
+}
+
+func (mw *MainWindow) onAddTextAnnotation() {
+	mw.promptAnnotationContents("Add Text Annotation", "Text note", "Note", func(contents string) error {
+		return pdf.NewAnnotator().AddText(mw.document.Path(), "", mw.viewer.CurrentPage(), contents)
+	})
+}
+
+func (mw *MainWindow) onAddShapeAnnotation() {
+	mw.promptAnnotationContents("Add Shape Annotation", "Shape label", "Shape", func(contents string) error {
+		return pdf.NewAnnotator().AddShape(mw.document.Path(), "", mw.viewer.CurrentPage(), contents)
+	})
+}
+
+func (mw *MainWindow) promptAnnotationContents(
+	title string,
+	fieldLabel string,
+	defaultValue string,
+	apply func(contents string) error,
+) {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	entry := widget.NewMultiLineEntry()
+	entry.SetText(defaultValue)
+
+	form := dialog.NewForm(
+		title,
+		"Apply",
+		"Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem(fieldLabel, entry),
+		},
+		func(ok bool) {
+			if !ok {
+				return
+			}
+
+			contents := strings.TrimSpace(entry.Text)
+			if contents == "" {
+				contents = defaultValue
+			}
+
+			page := mw.viewer.CurrentPage()
+			if err := apply(contents); err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			if err := mw.document.Reload(); err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			mw.viewer.SetDocument(mw.document)
+			mw.sidebar.SetDocument(mw.document)
+			mw.viewer.GoToPage(page)
+			mw.statusBar.SetText(fmt.Sprintf("%s added on page %d", title, page+1))
+		},
+		mw.window,
+	)
+	form.Resize(fyne.NewSize(460, 220))
+	form.Show()
+}
 
 func (mw *MainWindow) onAddPassword() {
 	if mw.document == nil {

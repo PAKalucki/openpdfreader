@@ -89,6 +89,28 @@ func TestDocumentMethods(t *testing.T) {
 	}
 }
 
+func TestDocumentReload(t *testing.T) {
+	tmpDir := t.TempDir()
+	testPDF := filepath.Join(tmpDir, "test.pdf")
+
+	if !createTestPDF(testPDF) {
+		t.Skip("Cannot create test PDF")
+	}
+
+	doc, err := Open(testPDF)
+	if err != nil {
+		t.Fatalf("Failed to open test PDF: %v", err)
+	}
+	defer doc.Close()
+
+	if err := doc.Reload(); err != nil {
+		t.Fatalf("Reload() failed: %v", err)
+	}
+	if doc.PageCount() < 1 {
+		t.Fatalf("PageCount() after reload = %d, want >= 1", doc.PageCount())
+	}
+}
+
 func TestDocumentRenderPage(t *testing.T) {
 	tmpDir := t.TempDir()
 	testPDF := filepath.Join(tmpDir, "test.pdf")

@@ -83,6 +83,42 @@ func OpenWithPassword(path, password string) (*Document, error) {
 	}, nil
 }
 
+// Reload re-reads the document context from disk.
+func (d *Document) Reload() error {
+	if d.path == "" {
+		return errors.New("no file path set")
+	}
+
+	var (
+		ctx *model.Context
+		err error
+	)
+
+	if d.userPassword != "" || d.ownerPassword != "" {
+		f, openErr := os.Open(d.path)
+		if openErr != nil {
+			return openErr
+		}
+		defer f.Close()
+
+		conf := model.NewDefaultConfiguration()
+		conf.UserPW = d.userPassword
+		conf.OwnerPW = d.ownerPassword
+
+		ctx, err = api.ReadContext(f, conf)
+	} else {
+		ctx, err = api.ReadContextFile(d.path)
+	}
+	if err != nil {
+		return err
+	}
+
+	d.ctx = ctx
+	d.pageCount = ctx.PageCount
+	d.modified = false
+	return nil
+}
+
 // Close closes the document and releases resources.
 func (d *Document) Close() error {
 	d.ctx = nil
