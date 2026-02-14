@@ -2,6 +2,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -14,13 +17,15 @@ import (
 
 // MainWindow represents the main application window.
 type MainWindow struct {
-	window    fyne.Window
-	config    *config.Config
-	viewer    *Viewer
-	toolbar   *Toolbar
-	sidebar   *Sidebar
-	statusBar *widget.Label
-	document  *pdf.Document
+	window       fyne.Window
+	config       *config.Config
+	viewer       *Viewer
+	toolbar      *Toolbar
+	sidebar      *Sidebar
+	statusBar    *widget.Label
+	document     *pdf.Document
+	selectedText string
+	selectedPage int
 }
 
 // NewMainWindow creates a new main window.
@@ -29,9 +34,10 @@ func NewMainWindow(fyneApp fyne.App, cfg *config.Config) *MainWindow {
 	window.Resize(fyne.NewSize(float32(cfg.WindowWidth), float32(cfg.WindowHeight)))
 
 	mw := &MainWindow{
-		window:    window,
-		config:    cfg,
-		statusBar: widget.NewLabel("Ready"),
+		window:       window,
+		config:       cfg,
+		statusBar:    widget.NewLabel("Ready"),
+		selectedPage: -1,
 	}
 
 	mw.setupUI()
@@ -205,6 +211,8 @@ func (mw *MainWindow) openPasswordProtectedFile(path string) {
 
 func (mw *MainWindow) setDocument(doc *pdf.Document, path string) {
 	mw.document = doc
+	mw.selectedText = ""
+	mw.selectedPage = -1
 	mw.viewer.SetDocument(doc)
 	mw.sidebar.SetDocument(doc)
 	mw.window.SetTitle("OpenPDF Reader - " + path)
@@ -276,10 +284,62 @@ func (mw *MainWindow) onPrint() {
 	}, mw.window)
 }
 
-func (mw *MainWindow) onUndo()             { /* TODO: Implement undo */ }
-func (mw *MainWindow) onRedo()             { /* TODO: Implement redo */ }
-func (mw *MainWindow) onCopy()             { /* TODO: Implement copy */ }
-func (mw *MainWindow) onSelectAll()        { /* TODO: Implement select all */ }
+func (mw *MainWindow) onUndo() { /* TODO: Implement undo */ }
+func (mw *MainWindow) onRedo() { /* TODO: Implement redo */ }
+func (mw *MainWindow) onCopy() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	currentPage := mw.viewer.CurrentPage()
+	selectedText := strings.TrimSpace(mw.selectedText)
+	if mw.selectedPage != currentPage || selectedText == "" {
+		text, err := mw.document.ExtractText(currentPage)
+		if err != nil {
+			dialog.ShowError(err, mw.window)
+			return
+		}
+		selectedText = strings.TrimSpace(text)
+		mw.selectedText = selectedText
+		mw.selectedPage = currentPage
+	}
+
+	if selectedText == "" {
+		dialog.ShowInformation("No Text", "No selectable text found on this page", mw.window)
+		return
+	}
+
+	mw.window.Clipboard().SetContent(selectedText)
+	mw.statusBar.SetText(fmt.Sprintf("Copied text from page %d", currentPage+1))
+}
+
+func (mw *MainWindow) onSelectAll() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	currentPage := mw.viewer.CurrentPage()
+	text, err := mw.document.ExtractText(currentPage)
+	if err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+
+	selectedText := strings.TrimSpace(text)
+	if selectedText == "" {
+		mw.selectedText = ""
+		mw.selectedPage = -1
+		dialog.ShowInformation("No Text", "No selectable text found on this page", mw.window)
+		return
+	}
+
+	mw.selectedText = selectedText
+	mw.selectedPage = currentPage
+	mw.statusBar.SetText(fmt.Sprintf("Selected all text on page %d", currentPage+1))
+}
+
 func (mw *MainWindow) onZoomIn()           { mw.viewer.ZoomIn() }
 func (mw *MainWindow) onZoomOut()          { mw.viewer.ZoomOut() }
 func (mw *MainWindow) onFitToPage()        { mw.viewer.FitToPage() }

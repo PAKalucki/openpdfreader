@@ -111,6 +111,11 @@ func (v *Viewer) GoToPage(page int) {
 	v.renderCurrentPage()
 }
 
+// CurrentPage returns the currently displayed page (0-indexed).
+func (v *Viewer) CurrentPage() int {
+	return v.currentPage
+}
+
 // ZoomIn increases the zoom level.
 func (v *Viewer) ZoomIn() {
 	newZoom := v.zoom * 1.25

@@ -28,10 +28,12 @@ func IsPasswordError(err error) bool {
 
 // Document represents a PDF document.
 type Document struct {
-	path      string
-	ctx       *model.Context
-	pageCount int
-	modified  bool
+	path          string
+	ctx           *model.Context
+	pageCount     int
+	modified      bool
+	userPassword  string
+	ownerPassword string
 }
 
 // Open opens a PDF file.
@@ -42,10 +44,12 @@ func Open(path string) (*Document, error) {
 	}
 
 	return &Document{
-		path:      path,
-		ctx:       ctx,
-		pageCount: ctx.PageCount,
-		modified:  false,
+		path:          path,
+		ctx:           ctx,
+		pageCount:     ctx.PageCount,
+		modified:      false,
+		userPassword:  "",
+		ownerPassword: "",
 	}, nil
 }
 
@@ -70,10 +74,12 @@ func OpenWithPassword(path, password string) (*Document, error) {
 	}
 
 	return &Document{
-		path:      path,
-		ctx:       ctx,
-		pageCount: ctx.PageCount,
-		modified:  false,
+		path:          path,
+		ctx:           ctx,
+		pageCount:     ctx.PageCount,
+		modified:      false,
+		userPassword:  password,
+		ownerPassword: password,
 	}, nil
 }
 
@@ -200,6 +206,9 @@ func (d *Document) ExtractText(pageNum int) (string, error) {
 		return "", errors.New("no document loaded")
 	}
 
-	// TODO: Implement text extraction
-	return "", nil
+	if pageNum < 0 || pageNum >= d.pageCount {
+		return "", errors.New("page number out of range")
+	}
+
+	return extractPageText(d.path, pageNum, d.userPassword, d.ownerPassword)
 }
