@@ -146,6 +146,7 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItem("Add Text Annotation...", mw.onAddTextAnnotation),
 		fyne.NewMenuItem("Add Shape Annotation...", mw.onAddShapeAnnotation),
 		fyne.NewMenuItem("Add Signature...", mw.onAddSignature),
+		fyne.NewMenuItem("Apply Redaction...", mw.onAddRedaction),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Add Password...", mw.onAddPassword),
 		fyne.NewMenuItem("Remove Password...", mw.onRemovePassword),
@@ -650,6 +651,29 @@ func (mw *MainWindow) onAddSignature() {
 		mw.sidebar.SetDocument(mw.document)
 		mw.viewer.GoToPage(page)
 		mw.statusBar.SetText(fmt.Sprintf("Signature added on page %d", page+1))
+		return nil
+	})
+}
+
+func (mw *MainWindow) onAddRedaction() {
+	mw.promptAnnotationContents("Apply Redaction", "Reason", "Redacted", func(contents string) error {
+		if mw.document == nil || mw.viewer == nil {
+			return errors.New("open a PDF file first")
+		}
+
+		page := mw.viewer.CurrentPage()
+		redactor := pdf.NewRedactor()
+		if err := redactor.ApplyVisualRedaction(mw.document.Path(), "", page, contents); err != nil {
+			return err
+		}
+		if err := mw.document.Reload(); err != nil {
+			return err
+		}
+
+		mw.viewer.SetDocument(mw.document)
+		mw.sidebar.SetDocument(mw.document)
+		mw.viewer.GoToPage(page)
+		mw.statusBar.SetText(fmt.Sprintf("Redaction applied on page %d", page+1))
 		return nil
 	})
 }
