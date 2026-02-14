@@ -3,7 +3,6 @@
 ## In Progress
 
 ## Backlog
-- [ ] Implement text selection and copy
 - [ ] Add annotation tools (highlight, text, shapes)
 - [ ] Implement form field detection and filling
 - [ ] Add signature pad
@@ -17,6 +16,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Implement text selection and copy (commit: 5b5fc91)
 - [x] Add print dialog (commit: 0f2e04c)
 - [x] Add thumbnail rendering in sidebar (commit: 7e6c79b)
 - [x] Implement split PDF dialog (commit: d4d958f)
