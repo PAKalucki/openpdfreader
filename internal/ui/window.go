@@ -2,6 +2,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -125,6 +126,9 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItem("Extract Pages...", mw.onExtractPages),
 		fyne.NewMenuItem("Delete Pages...", mw.onDeletePages),
 		fyne.NewMenuItem("Rotate Pages...", mw.onRotatePages),
+		fyne.NewMenuItemSeparator(),
+		fyne.NewMenuItem("List Form Fields", mw.onListFormFields),
+		fyne.NewMenuItem("Fill Form Fields...", mw.onFillFormFields),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Add Highlight...", mw.onAddHighlightAnnotation),
 		fyne.NewMenuItem("Add Text Annotation...", mw.onAddTextAnnotation),
@@ -374,6 +378,115 @@ func (mw *MainWindow) onExtractPages() { /* TODO: Show extract dialog */ }
 func (mw *MainWindow) onDeletePages()  { /* TODO: Show delete dialog */ }
 func (mw *MainWindow) onRotatePages()  { /* TODO: Show rotate dialog */ }
 
+func (mw *MainWindow) onListFormFields() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	fields, err := pdf.NewFormManager().ListFields(mw.document.Path())
+	if err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+	if len(fields) == 0 {
+		dialog.ShowInformation("Form Fields", "No form fields found in this document", mw.window)
+		return
+	}
+
+	lines := make([]string, 0, len(fields)+1)
+	lines = append(lines, "Pages | Type | Name | ID | Value")
+	for _, field := range fields {
+		name := field.Name
+		if name == "" {
+			name = "(unnamed)"
+		}
+		lines = append(lines, fmt.Sprintf(
+			"%s | %s | %s | %s | %s",
+			pageNumbersToString(field.Pages),
+			field.Type,
+			name,
+			field.ID,
+			field.Value,
+		))
+	}
+
+	entry := widget.NewMultiLineEntry()
+	entry.SetText(strings.Join(lines, "\n"))
+	entry.Disable()
+
+	content := container.NewBorder(
+		widget.NewLabel("Use field name or ID in Fill Form Fields..."),
+		nil,
+		nil,
+		nil,
+		container.NewScroll(entry),
+	)
+
+	info := dialog.NewCustom("Form Fields", "Close", content, mw.window)
+	info.Resize(fyne.NewSize(760, 460))
+	info.Show()
+}
+
+func (mw *MainWindow) onFillFormFields() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	fields, err := pdf.NewFormManager().ListFields(mw.document.Path())
+	if err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+	if len(fields) == 0 {
+		dialog.ShowInformation("Form Fields", "No form fields found in this document", mw.window)
+		return
+	}
+
+	entry := widget.NewMultiLineEntry()
+	entry.SetPlaceHolder("fieldName=value\ncheckField=true\nlistField=a,b")
+
+	formDialog := dialog.NewForm(
+		"Fill Form Fields",
+		"Apply",
+		"Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Assignments", entry),
+		},
+		func(ok bool) {
+			if !ok {
+				return
+			}
+
+			assignments, parseErr := parseFieldAssignments(entry.Text)
+			if parseErr != nil {
+				dialog.ShowError(parseErr, mw.window)
+				return
+			}
+
+			page := mw.viewer.CurrentPage()
+			manager := pdf.NewFormManager()
+			if err := manager.FillFields(mw.document.Path(), "", assignments); err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			if err := mw.document.Reload(); err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			mw.viewer.SetDocument(mw.document)
+			mw.sidebar.SetDocument(mw.document)
+			mw.viewer.GoToPage(page)
+			mw.statusBar.SetText(fmt.Sprintf("Updated form fields (%d assignments)", len(assignments)))
+		},
+		mw.window,
+	)
+	formDialog.Resize(fyne.NewSize(540, 280))
+	formDialog.Show()
+}
+
 func (mw *MainWindow) onAddHighlightAnnotation() {
 	mw.promptAnnotationContents("Add Highlight", "Highlight content", "Highlight", func(contents string) error {
 		return pdf.NewAnnotator().AddHighlight(mw.document.Path(), "", mw.viewer.CurrentPage(), contents)
@@ -442,6 +555,49 @@ func (mw *MainWindow) promptAnnotationContents(
 	)
 	form.Resize(fyne.NewSize(460, 220))
 	form.Show()
+}
+
+func parseFieldAssignments(input string) (map[string]string, error) {
+	assignments := map[string]string{}
+	lines := strings.Split(input, "\n")
+
+	for i, raw := range lines {
+		line := strings.TrimSpace(raw)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid assignment on line %d: expected field=value", i+1)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if key == "" {
+			return nil, fmt.Errorf("invalid assignment on line %d: missing field name", i+1)
+		}
+
+		assignments[key] = value
+	}
+
+	if len(assignments) == 0 {
+		return nil, errors.New("no assignments provided")
+	}
+
+	return assignments, nil
+}
+
+func pageNumbersToString(pages []int) string {
+	if len(pages) == 0 {
+		return "-"
+	}
+
+	parts := make([]string, 0, len(pages))
+	for _, page := range pages {
+		parts = append(parts, fmt.Sprintf("%d", page))
+	}
+	return strings.Join(parts, ",")
 }
 
 func (mw *MainWindow) onAddPassword() {
