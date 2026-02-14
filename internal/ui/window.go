@@ -697,7 +697,105 @@ func (mw *MainWindow) onSplitPDF() {
 }
 func (mw *MainWindow) onExtractPages() { /* TODO: Show extract dialog */ }
 func (mw *MainWindow) onDeletePages()  { /* TODO: Show delete dialog */ }
-func (mw *MainWindow) onRotatePages()  { /* TODO: Show rotate dialog */ }
+func (mw *MainWindow) onRotatePages() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+	if mw.viewer == nil {
+		dialog.ShowInformation("No Active View", "Select a document tab first", mw.window)
+		return
+	}
+
+	pagesEntry := widget.NewEntry()
+	pagesEntry.SetText(fmt.Sprintf("%d", mw.viewer.CurrentPage()+1))
+	pagesEntry.SetPlaceHolder("e.g. 1,3,5-7 or all")
+
+	rotationSelect := widget.NewSelect([]string{"90", "180", "270"}, nil)
+	rotationSelect.SetSelected("90")
+
+	form := dialog.NewForm(
+		"Rotate Pages",
+		"Apply",
+		"Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Pages", pagesEntry),
+			widget.NewFormItem("Rotation", rotationSelect),
+		},
+		func(ok bool) {
+			if !ok {
+				return
+			}
+
+			pages, err := parsePageSelection(pagesEntry.Text, mw.document.PageCount())
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			rotation, err := strconv.Atoi(strings.TrimSpace(rotationSelect.Selected))
+			if err != nil || (rotation != 90 && rotation != 180 && rotation != 270) {
+				dialog.ShowError(errors.New("select a valid rotation (90, 180, or 270)"), mw.window)
+				return
+			}
+
+			currentPage := mw.viewer.CurrentPage()
+			snapshotPath, err := mw.prepareUndoSnapshot()
+			if err != nil {
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			tmpFile, err := os.CreateTemp(filepath.Dir(mw.document.Path()), "openpdfreader-rotate-*.pdf")
+			if err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			tmpPath := tmpFile.Name()
+			if err := tmpFile.Close(); err != nil {
+				_ = os.Remove(snapshotPath)
+				_ = os.Remove(tmpPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			defer os.Remove(tmpPath)
+
+			merger := pdf.NewMerger()
+			if err := merger.RotatePages(mw.document.Path(), rotation, pages, tmpPath); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			if err := copyFile(tmpPath, mw.document.Path()); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			if err := mw.document.Reload(); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			if undo := mw.currentUndoManager(); undo != nil {
+				undo.pushUndo(snapshotPath)
+			}
+			mw.viewer.SetDocument(mw.document)
+			mw.sidebar.SetDocument(mw.document)
+			if currentPage >= mw.document.PageCount() {
+				currentPage = mw.document.PageCount() - 1
+			}
+			mw.viewer.GoToPage(currentPage)
+			mw.statusBar.SetText(fmt.Sprintf("Rotated %d page(s) by %d degrees", len(pages), rotation))
+		},
+		mw.window,
+	)
+	form.Resize(fyne.NewSize(460, 230))
+	form.Show()
+}
 
 func (mw *MainWindow) onExportToImages() {
 	if mw.document == nil {
@@ -1090,6 +1188,89 @@ func parseFieldAssignments(input string) (map[string]string, error) {
 	}
 
 	return assignments, nil
+}
+
+func parsePageSelection(input string, maxPage int) ([]int, error) {
+	if maxPage <= 0 {
+		return nil, errors.New("document has no pages")
+	}
+
+	raw := strings.TrimSpace(input)
+	if raw == "" {
+		return nil, errors.New("enter at least one page")
+	}
+
+	if strings.EqualFold(raw, "all") {
+		pages := make([]int, maxPage)
+		for i := 0; i < maxPage; i++ {
+			pages[i] = i + 1
+		}
+		return pages, nil
+	}
+
+	tokens := strings.Split(raw, ",")
+	pages := make([]int, 0, len(tokens))
+	seen := make(map[int]struct{}, len(tokens))
+
+	for _, token := range tokens {
+		part := strings.TrimSpace(token)
+		if part == "" {
+			return nil, errors.New("invalid page list: empty item")
+		}
+
+		if strings.Contains(part, "-") {
+			rangeParts := strings.Split(part, "-")
+			if len(rangeParts) != 2 {
+				return nil, fmt.Errorf("invalid page range: %q", part)
+			}
+
+			start, err := strconv.Atoi(strings.TrimSpace(rangeParts[0]))
+			if err != nil {
+				return nil, fmt.Errorf("invalid start page in range %q", part)
+			}
+			end, err := strconv.Atoi(strings.TrimSpace(rangeParts[1]))
+			if err != nil {
+				return nil, fmt.Errorf("invalid end page in range %q", part)
+			}
+
+			if start < 1 || end < 1 {
+				return nil, fmt.Errorf("page numbers must be >= 1: %q", part)
+			}
+			if start > end {
+				return nil, fmt.Errorf("invalid page range %q: start must be <= end", part)
+			}
+			if start > maxPage || end > maxPage {
+				return nil, fmt.Errorf("page range %q is out of bounds (1-%d)", part, maxPage)
+			}
+
+			for page := start; page <= end; page++ {
+				if _, ok := seen[page]; ok {
+					continue
+				}
+				seen[page] = struct{}{}
+				pages = append(pages, page)
+			}
+			continue
+		}
+
+		page, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, fmt.Errorf("invalid page number: %q", part)
+		}
+		if page < 1 || page > maxPage {
+			return nil, fmt.Errorf("page %d is out of bounds (1-%d)", page, maxPage)
+		}
+		if _, ok := seen[page]; ok {
+			continue
+		}
+		seen[page] = struct{}{}
+		pages = append(pages, page)
+	}
+
+	if len(pages) == 0 {
+		return nil, errors.New("enter at least one page")
+	}
+	return pages, nil
 }
 
 func pageNumbersToString(pages []int) string {

@@ -31,6 +31,54 @@ func TestParseFieldAssignmentsErrors(t *testing.T) {
 	}
 }
 
+func TestParsePageSelection(t *testing.T) {
+	got, err := parsePageSelection("1, 3-5, 3,10", 10)
+	if err != nil {
+		t.Fatalf("parsePageSelection() returned error: %v", err)
+	}
+
+	want := []int{1, 3, 4, 5, 10}
+	if len(got) != len(want) {
+		t.Fatalf("page count = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("page[%d] = %d, want %d", i, got[i], want[i])
+		}
+	}
+}
+
+func TestParsePageSelectionAll(t *testing.T) {
+	got, err := parsePageSelection("all", 3)
+	if err != nil {
+		t.Fatalf("parsePageSelection(all) returned error: %v", err)
+	}
+
+	want := []int{1, 2, 3}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("page[%d] = %d, want %d", i, got[i], want[i])
+		}
+	}
+}
+
+func TestParsePageSelectionErrors(t *testing.T) {
+	tests := []string{
+		"",
+		"1,,2",
+		"9",
+		"3-1",
+		"2-a",
+		"a",
+	}
+
+	for _, in := range tests {
+		if _, err := parsePageSelection(in, 5); err == nil {
+			t.Fatalf("parsePageSelection(%q) expected error", in)
+		}
+	}
+}
+
 func TestPageNumbersToString(t *testing.T) {
 	if got := pageNumbersToString(nil); got != "-" {
 		t.Fatalf("pageNumbersToString(nil) = %q, want -", got)
