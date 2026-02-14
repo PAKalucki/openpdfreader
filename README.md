@@ -11,6 +11,7 @@ An open-source, cross-platform PDF viewer and editor.
 - **Signature Pad** - Draw and place signatures directly onto PDF pages
 - **Redaction Tool** - Apply visual redaction overlays to sensitive areas
 - **PDF to Images** - Export each page as PNG/JPG files
+- **PDF to Text** - Export all pages to a plain text document
 - **Edit** - Add annotations, highlights, and notes
 - **Fill & Sign** - Complete form fields and add signatures
 - **Page Management** - Delete, reorder, rotate, extract, and merge pages

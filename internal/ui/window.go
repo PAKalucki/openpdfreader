@@ -140,6 +140,7 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItem("Delete Pages...", mw.onDeletePages),
 		fyne.NewMenuItem("Rotate Pages...", mw.onRotatePages),
 		fyne.NewMenuItem("Export Pages to Images...", mw.onExportToImages),
+		fyne.NewMenuItem("Export PDF to Text...", mw.onExportToText),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("List Form Fields", mw.onListFormFields),
 		fyne.NewMenuItem("Fill Form Fields...", mw.onFillFormFields),
@@ -569,6 +570,37 @@ func (mw *MainWindow) onExportToImages() {
 	}, mw.window)
 	dlg.Resize(fyne.NewSize(520, 360))
 	dlg.Show()
+}
+
+func (mw *MainWindow) onExportToText() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+		if err != nil || writer == nil {
+			return
+		}
+		writer.Close()
+
+		outputPath := writer.URI().Path()
+		if strings.TrimSpace(outputPath) == "" {
+			return
+		}
+		if !strings.HasSuffix(strings.ToLower(outputPath), ".txt") {
+			outputPath += ".txt"
+		}
+
+		exporter := pdf.NewTextExporter()
+		if err := exporter.ExportToText(mw.document.Path(), outputPath); err != nil {
+			dialog.ShowError(err, mw.window)
+			return
+		}
+
+		mw.statusBar.SetText("Exported text: " + outputPath)
+		dialog.ShowInformation("Export Complete", "Text exported to:\n"+outputPath, mw.window)
+	}, mw.window)
 }
 
 func (mw *MainWindow) onListFormFields() {
