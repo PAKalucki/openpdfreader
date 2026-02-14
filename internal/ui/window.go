@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/openpdfreader/openpdfreader/internal/config"
@@ -133,6 +134,10 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Toggle Thumbnails", mw.onToggleThumbnails),
 		fyne.NewMenuItem("Fullscreen", mw.onFullscreen),
+		fyne.NewMenuItemSeparator(),
+		fyne.NewMenuItem("Use System Theme", func() { mw.setTheme("system") }),
+		fyne.NewMenuItem("Use Light Theme", func() { mw.setTheme("light") }),
+		fyne.NewMenuItem("Use Dark Theme", func() { mw.setTheme("dark") }),
 	)
 
 	toolsMenu := fyne.NewMenu("Tools",
@@ -331,6 +336,17 @@ func tabTitleForPath(path string) string {
 		return path
 	}
 	return base
+}
+
+func normalizeThemeName(name string) string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "light":
+		return "light"
+	case "dark":
+		return "dark"
+	default:
+		return "system"
+	}
 }
 
 func (mw *MainWindow) currentUndoManager() *undoManager {
@@ -641,6 +657,24 @@ func (mw *MainWindow) onToggleThumbnails() {
 	}
 }
 func (mw *MainWindow) onFullscreen() { mw.window.SetFullScreen(!mw.window.FullScreen()) }
+
+func (mw *MainWindow) setTheme(themeName string) {
+	switch normalizeThemeName(themeName) {
+	case "light":
+		fyne.CurrentApp().Settings().SetTheme(theme.LightTheme())
+		mw.config.Theme = "light"
+		mw.statusBar.SetText("Theme set to Light")
+	case "dark":
+		fyne.CurrentApp().Settings().SetTheme(theme.DarkTheme())
+		mw.config.Theme = "dark"
+		mw.statusBar.SetText("Theme set to Dark")
+	default:
+		fyne.CurrentApp().Settings().SetTheme(theme.DefaultTheme())
+		mw.config.Theme = "system"
+		mw.statusBar.SetText("Theme set to System")
+	}
+	_ = mw.config.Save()
+}
 
 func (mw *MainWindow) onMergePDFs() {
 	dlg := dialogs.NewMergeDialog(mw.window, func(files []string, output string) {
