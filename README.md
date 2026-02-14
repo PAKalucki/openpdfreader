@@ -8,6 +8,7 @@ An open-source, cross-platform PDF viewer and editor.
 - **Tabbed Documents** - Open multiple PDF files in separate tabs
 - **Print** - Send the currently opened PDF to the system default printer
 - **Text Copy** - Select all text on the current page and copy it to clipboard
+- **Signature Pad** - Draw and place signatures directly onto PDF pages
 - **Edit** - Add annotations, highlights, and notes
 - **Fill & Sign** - Complete form fields and add signatures
 - **Page Management** - Delete, reorder, rotate, extract, and merge pages

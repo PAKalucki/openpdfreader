@@ -145,6 +145,7 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItem("Add Highlight...", mw.onAddHighlightAnnotation),
 		fyne.NewMenuItem("Add Text Annotation...", mw.onAddTextAnnotation),
 		fyne.NewMenuItem("Add Shape Annotation...", mw.onAddShapeAnnotation),
+		fyne.NewMenuItem("Add Signature...", mw.onAddSignature),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Add Password...", mw.onAddPassword),
 		fyne.NewMenuItem("Remove Password...", mw.onRemovePassword),
@@ -622,6 +623,34 @@ func (mw *MainWindow) onAddTextAnnotation() {
 func (mw *MainWindow) onAddShapeAnnotation() {
 	mw.promptAnnotationContents("Add Shape Annotation", "Shape label", "Shape", func(contents string) error {
 		return pdf.NewAnnotator().AddShape(mw.document.Path(), "", mw.viewer.CurrentPage(), contents)
+	})
+}
+
+func (mw *MainWindow) onAddSignature() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+	if mw.viewer == nil {
+		dialog.ShowInformation("No Active View", "Select a document tab first", mw.window)
+		return
+	}
+
+	dialogs.ShowSignaturePadDialog(mw.window, func(signaturePNG []byte) error {
+		page := mw.viewer.CurrentPage()
+		manager := pdf.NewSignatureManager()
+		if err := manager.AddSignatureToPage(mw.document.Path(), "", page, signaturePNG); err != nil {
+			return err
+		}
+		if err := mw.document.Reload(); err != nil {
+			return err
+		}
+
+		mw.viewer.SetDocument(mw.document)
+		mw.sidebar.SetDocument(mw.document)
+		mw.viewer.GoToPage(page)
+		mw.statusBar.SetText(fmt.Sprintf("Signature added on page %d", page+1))
+		return nil
 	})
 }
 
