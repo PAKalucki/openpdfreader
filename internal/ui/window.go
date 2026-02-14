@@ -4,6 +4,8 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -42,6 +44,7 @@ type DocumentTab struct {
 	sidebar      *Sidebar
 	selectedText string
 	selectedPage int
+	undo         *undoManager
 }
 
 // NewMainWindow creates a new main window.
@@ -270,6 +273,7 @@ func (mw *MainWindow) newDocumentTab(doc *pdf.Document, path string) *DocumentTa
 		sidebar:      sidebar,
 		selectedText: "",
 		selectedPage: -1,
+		undo:         newUndoManager(20),
 	}
 }
 
@@ -329,6 +333,80 @@ func tabTitleForPath(path string) string {
 	return base
 }
 
+func (mw *MainWindow) currentUndoManager() *undoManager {
+	tab := mw.currentTab()
+	if tab == nil {
+		return nil
+	}
+	return tab.undo
+}
+
+func (mw *MainWindow) createSnapshot(srcPath string) (string, error) {
+	tmp, err := os.CreateTemp("", "openpdfreader-undo-*.pdf")
+	if err != nil {
+		return "", err
+	}
+	tmpPath := tmp.Name()
+	if err := tmp.Close(); err != nil {
+		return "", err
+	}
+
+	if err := copyFile(srcPath, tmpPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return "", err
+	}
+	return tmpPath, nil
+}
+
+func (mw *MainWindow) prepareUndoSnapshot() (string, error) {
+	if mw.document == nil {
+		return "", errors.New("no document loaded")
+	}
+	return mw.createSnapshot(mw.document.Path())
+}
+
+func (mw *MainWindow) restoreSnapshot(snapshotPath, targetPath string) error {
+	return copyFile(snapshotPath, targetPath)
+}
+
+func (mw *MainWindow) reloadCurrentDocumentAtPage(page int) error {
+	if mw.document == nil || mw.viewer == nil || mw.sidebar == nil {
+		return nil
+	}
+	if err := mw.document.Reload(); err != nil {
+		return err
+	}
+	mw.viewer.SetDocument(mw.document)
+	mw.sidebar.SetDocument(mw.document)
+	mw.viewer.GoToPage(page)
+	return nil
+}
+
+func copyFile(srcPath, dstPath string) (err error) {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		closeErr := dst.Close()
+		if err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Menu action handlers
 
 func (mw *MainWindow) onOpenFile() {
@@ -370,6 +448,9 @@ func (mw *MainWindow) onSaveAs() {
 			return
 		}
 		mw.updateCurrentTabPath(path)
+		if undo := mw.currentUndoManager(); undo != nil {
+			undo.clearAll()
+		}
 		mw.statusBar.SetText("Saved as: " + path)
 	}, mw.window)
 }
@@ -394,8 +475,89 @@ func (mw *MainWindow) onPrint() {
 	}, mw.window)
 }
 
-func (mw *MainWindow) onUndo() { /* TODO: Implement undo */ }
-func (mw *MainWindow) onRedo() { /* TODO: Implement redo */ }
+func (mw *MainWindow) onUndo() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	manager := mw.currentUndoManager()
+	if manager == nil || !manager.canUndo() {
+		dialog.ShowInformation("Undo", "Nothing to undo", mw.window)
+		return
+	}
+
+	page := mw.viewer.CurrentPage()
+	currentSnapshot, err := mw.createSnapshot(mw.document.Path())
+	if err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+
+	undoSnapshot, ok := manager.popUndo()
+	if !ok {
+		_ = os.Remove(currentSnapshot)
+		dialog.ShowInformation("Undo", "Nothing to undo", mw.window)
+		return
+	}
+
+	if err := mw.restoreSnapshot(undoSnapshot, mw.document.Path()); err != nil {
+		_ = os.Remove(currentSnapshot)
+		dialog.ShowError(err, mw.window)
+		return
+	}
+
+	manager.pushRedo(currentSnapshot)
+	_ = os.Remove(undoSnapshot)
+
+	if err := mw.reloadCurrentDocumentAtPage(page); err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+	mw.statusBar.SetText("Undo complete")
+}
+
+func (mw *MainWindow) onRedo() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	manager := mw.currentUndoManager()
+	if manager == nil || !manager.canRedo() {
+		dialog.ShowInformation("Redo", "Nothing to redo", mw.window)
+		return
+	}
+
+	page := mw.viewer.CurrentPage()
+	currentSnapshot, err := mw.createSnapshot(mw.document.Path())
+	if err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+
+	redoSnapshot, ok := manager.popRedo()
+	if !ok {
+		_ = os.Remove(currentSnapshot)
+		dialog.ShowInformation("Redo", "Nothing to redo", mw.window)
+		return
+	}
+
+	if err := mw.restoreSnapshot(redoSnapshot, mw.document.Path()); err != nil {
+		_ = os.Remove(currentSnapshot)
+		dialog.ShowError(err, mw.window)
+		return
+	}
+
+	manager.pushUndo(currentSnapshot)
+	_ = os.Remove(redoSnapshot)
+
+	if err := mw.reloadCurrentDocumentAtPage(page); err != nil {
+		dialog.ShowError(err, mw.window)
+		return
+	}
+	mw.statusBar.SetText("Redo complete")
+}
 func (mw *MainWindow) onCopy() {
 	if mw.document == nil {
 		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
@@ -691,16 +853,27 @@ func (mw *MainWindow) onFillFormFields() {
 			}
 
 			page := mw.viewer.CurrentPage()
-			manager := pdf.NewFormManager()
-			if err := manager.FillFields(mw.document.Path(), "", assignments); err != nil {
-				dialog.ShowError(err, mw.window)
-				return
-			}
-			if err := mw.document.Reload(); err != nil {
+			snapshotPath, err := mw.prepareUndoSnapshot()
+			if err != nil {
 				dialog.ShowError(err, mw.window)
 				return
 			}
 
+			manager := pdf.NewFormManager()
+			if err := manager.FillFields(mw.document.Path(), "", assignments); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			if err := mw.document.Reload(); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			if undo := mw.currentUndoManager(); undo != nil {
+				undo.pushUndo(snapshotPath)
+			}
 			mw.viewer.SetDocument(mw.document)
 			mw.sidebar.SetDocument(mw.document)
 			mw.viewer.GoToPage(page)
@@ -742,14 +915,24 @@ func (mw *MainWindow) onAddSignature() {
 
 	dialogs.ShowSignaturePadDialog(mw.window, func(signaturePNG []byte) error {
 		page := mw.viewer.CurrentPage()
-		manager := pdf.NewSignatureManager()
-		if err := manager.AddSignatureToPage(mw.document.Path(), "", page, signaturePNG); err != nil {
-			return err
-		}
-		if err := mw.document.Reload(); err != nil {
+		snapshotPath, err := mw.prepareUndoSnapshot()
+		if err != nil {
 			return err
 		}
 
+		manager := pdf.NewSignatureManager()
+		if err := manager.AddSignatureToPage(mw.document.Path(), "", page, signaturePNG); err != nil {
+			_ = os.Remove(snapshotPath)
+			return err
+		}
+		if err := mw.document.Reload(); err != nil {
+			_ = os.Remove(snapshotPath)
+			return err
+		}
+
+		if undo := mw.currentUndoManager(); undo != nil {
+			undo.pushUndo(snapshotPath)
+		}
 		mw.viewer.SetDocument(mw.document)
 		mw.sidebar.SetDocument(mw.document)
 		mw.viewer.GoToPage(page)
@@ -813,15 +996,26 @@ func (mw *MainWindow) promptAnnotationContents(
 			}
 
 			page := mw.viewer.CurrentPage()
-			if err := apply(contents); err != nil {
-				dialog.ShowError(err, mw.window)
-				return
-			}
-			if err := mw.document.Reload(); err != nil {
+			snapshotPath, err := mw.prepareUndoSnapshot()
+			if err != nil {
 				dialog.ShowError(err, mw.window)
 				return
 			}
 
+			if err := apply(contents); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+			if err := mw.document.Reload(); err != nil {
+				_ = os.Remove(snapshotPath)
+				dialog.ShowError(err, mw.window)
+				return
+			}
+
+			if undo := mw.currentUndoManager(); undo != nil {
+				undo.pushUndo(snapshotPath)
+			}
 			mw.viewer.SetDocument(mw.document)
 			mw.sidebar.SetDocument(mw.document)
 			mw.viewer.GoToPage(page)
