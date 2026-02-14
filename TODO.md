@@ -3,7 +3,6 @@
 ## In Progress
 
 ## Backlog
-- [ ] add support for opening multiple PDFs in tabs
 - [ ] Add signature pad
 - [ ] Add redaction tools
 - [ ] Implement PDF to image export
@@ -15,6 +14,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] add support for opening multiple PDFs in tabs (commit: 2dcc183)
 - [x] Set up CI/CD pipeline (commit: b550ee6)
 - [x] Implement form field detection and filling (commit: b62a963)
 - [x] Add annotation tools (highlight, text, shapes) (commit: c4a157b)
