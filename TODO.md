@@ -3,7 +3,6 @@
 ## In Progress
 
 ## Backlog
-- [ ] Implement PDF to image export
 - [ ] implement pdf to text document export
 - [ ] Implement undo/redo system
 - [ ] Implement cli work mode to perform PDF file operations without GUI
@@ -12,6 +11,7 @@
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Implement PDF to image export (commit: 0edcb79)
 - [x] Add redaction tools (commit: 602b037)
 - [x] Add signature pad (commit: bfbd381)
 - [x] add support for opening multiple PDFs in tabs (commit: 2dcc183)
