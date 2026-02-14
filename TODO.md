@@ -3,10 +3,10 @@
 ## In Progress
 
 ## Backlog
-- [ ] Create application icon
 - [ ] Create installers for Windows/Linux
 
 ## Completed
+- [x] Create application icon (commit: dce0bee)
 - [x] Add dark/light theme support (commit: f785e7f)
 - [x] Implement cli work mode to perform PDF file operations without GUI (commit: e95c227)
 - [x] Implement undo/redo system (commit: 190aa0e)
