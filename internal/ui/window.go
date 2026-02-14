@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -138,6 +139,7 @@ func (mw *MainWindow) setupMenus() {
 		fyne.NewMenuItem("Extract Pages...", mw.onExtractPages),
 		fyne.NewMenuItem("Delete Pages...", mw.onDeletePages),
 		fyne.NewMenuItem("Rotate Pages...", mw.onRotatePages),
+		fyne.NewMenuItem("Export Pages to Images...", mw.onExportToImages),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("List Form Fields", mw.onListFormFields),
 		fyne.NewMenuItem("Fill Form Fields...", mw.onFillFormFields),
@@ -499,6 +501,75 @@ func (mw *MainWindow) onSplitPDF() {
 func (mw *MainWindow) onExtractPages() { /* TODO: Show extract dialog */ }
 func (mw *MainWindow) onDeletePages()  { /* TODO: Show delete dialog */ }
 func (mw *MainWindow) onRotatePages()  { /* TODO: Show rotate dialog */ }
+
+func (mw *MainWindow) onExportToImages() {
+	if mw.document == nil {
+		dialog.ShowInformation("No Document", "Open a PDF file first", mw.window)
+		return
+	}
+
+	outputDir := ""
+	outputEntry := widget.NewEntry()
+	outputEntry.SetPlaceHolder("Select output folder")
+
+	chooseOutputBtn := widget.NewButton("Choose Folder...", func() {
+		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+			if err != nil || uri == nil {
+				return
+			}
+			outputDir = uri.Path()
+			outputEntry.SetText(outputDir)
+		}, mw.window)
+	})
+
+	formatSelect := widget.NewSelect([]string{"png", "jpg"}, nil)
+	formatSelect.SetSelected("png")
+
+	scaleEntry := widget.NewEntry()
+	scaleEntry.SetText("2.0")
+	scaleEntry.SetPlaceHolder("Scale factor (e.g. 1.0, 2.0)")
+
+	content := container.NewVBox(
+		widget.NewLabel("Export all pages to image files"),
+		widget.NewSeparator(),
+		widget.NewLabel("Output folder:"),
+		outputEntry,
+		chooseOutputBtn,
+		widget.NewLabel("Image format:"),
+		formatSelect,
+		widget.NewLabel("Render scale:"),
+		scaleEntry,
+	)
+
+	dlg := dialog.NewCustomConfirm("Export Pages to Images", "Export", "Cancel", content, func(ok bool) {
+		if !ok {
+			return
+		}
+
+		if strings.TrimSpace(outputEntry.Text) == "" {
+			dialog.ShowError(errors.New("select an output folder"), mw.window)
+			return
+		}
+
+		scale, err := strconv.ParseFloat(strings.TrimSpace(scaleEntry.Text), 64)
+		if err != nil || scale <= 0 {
+			dialog.ShowError(errors.New("enter a valid scale greater than zero"), mw.window)
+			return
+		}
+
+		exporter := pdf.NewImageExporter()
+		files, err := exporter.ExportToImages(mw.document.Path(), strings.TrimSpace(outputEntry.Text), formatSelect.Selected, scale)
+		if err != nil {
+			dialog.ShowError(err, mw.window)
+			return
+		}
+
+		mw.statusBar.SetText(fmt.Sprintf("Exported %d page(s) to images", len(files)))
+		dialog.ShowInformation("Export Complete", fmt.Sprintf("Exported %d page(s) to:\n%s", len(files), strings.TrimSpace(outputEntry.Text)), mw.window)
+	}, mw.window)
+	dlg.Resize(fyne.NewSize(520, 360))
+	dlg.Show()
+}
 
 func (mw *MainWindow) onListFormFields() {
 	if mw.document == nil {
